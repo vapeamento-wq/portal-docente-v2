@@ -177,11 +177,20 @@ const App = () => {
         .timeline-content:hover { background: white; border-color: var(--secondary); box-shadow: 0 15px 30px rgba(0,0,0,0.06); }
         
         /* Timeline States */
+        /* Timeline States */
+        /* PAST - Grey */
         .timeline-item.past .timeline-content { opacity: 0.6; background: #f9f9f9; }
         .timeline-item.past .date-circle { opacity: 0.6; background: #f5f5f5; border-color: #ddd; color: #ccc; }
+        .timeline-item.past .timeline-line { background: #e0e0e0; }
         
-        .timeline-item.present .timeline-content { border: 2px solid var(--secondary); background: white; box-shadow: 0 10px 25px rgba(219, 155, 50, 0.15); transform: scale(1.02); }
-        .timeline-item.present .date-circle { border-color: var(--secondary); color: var(--secondary); background: white; box-shadow: 0 5px 15px rgba(219, 155, 50, 0.2); }
+        /* PRESENT - Green */
+        .timeline-item.present .timeline-content { border: 2px solid #25D366; background: white; box-shadow: 0 10px 25px rgba(37, 211, 102, 0.15); transform: scale(1.02); }
+        .timeline-item.present .date-circle { border-color: #25D366; color: white; background: #25D366; box-shadow: 0 5px 15px rgba(37, 211, 102, 0.2); }
+        .timeline-item.present .timeline-line { background: #25D366; }
+        
+        /* FUTURE - Blue */
+        .timeline-item.future .date-circle { border-color: var(--primary); color: white; background: var(--primary); }
+        .timeline-item.future .timeline-line { background: var(--primary); }
         
         .zoom-mini-btn { display: inline-flex; align-items: center; gap: 8px; background: #2D8CFF; color: white; padding: 10px 20px; border-radius: 50px; text-decoration: none; font-size: 0.9rem; font-weight: bold; margin-top: 15px; }
         .copy-icon { cursor: pointer; opacity: 0.6; font-size: 1.1rem; }
