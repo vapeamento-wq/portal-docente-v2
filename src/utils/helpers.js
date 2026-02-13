@@ -94,17 +94,32 @@ export const procesarCursos = (cursos) => {
       // --- 3. Determine Status (Past/Present/Future) ---
       let status = 'future';
       if (fechaObj) {
-        // Compare with today. 
-        // We consider "Present" if it's the same day.
-        // We consider "Past" if it's before today.
+        const getWeek = (d) => {
+          const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+          date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay() || 7));
+          const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+          return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+        };
 
-        const fechaSimple = new Date(fechaObj.getFullYear(), fechaObj.getMonth(), fechaObj.getDate());
-        const hoySimple = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+        const currentWeek = getWeek(hoy);
+        const courseWeek = getWeek(fechaObj);
 
-        if (fechaSimple < hoySimple) {
+        // Year check is also important
+        const currentYear = hoy.getFullYear();
+        const courseYear = fechaObj.getFullYear();
+
+        if (courseYear < currentYear) {
           status = 'past';
-        } else if (fechaSimple.getTime() === hoySimple.getTime()) {
-          status = 'present';
+        } else if (courseYear > currentYear) {
+          status = 'future';
+        } else {
+          if (courseWeek < currentWeek) {
+            status = 'past';
+          } else if (courseWeek === currentWeek) {
+            status = 'present';
+          } else {
+            status = 'future';
+          }
         }
       }
 
