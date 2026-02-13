@@ -224,10 +224,7 @@ const App = () => {
             <div style={{ fontSize: '5rem', marginBottom: '20px' }}>👨🏫</div>
             <h1 style={{ color: 'var(--primary)', marginBottom: '15px', fontSize: '2.5rem' }}>Portal Docente</h1>
             <p style={{ color: '#666', maxWidth: '600px', margin: '0 auto', fontSize: '1.1rem' }}>Gestiona tu programación académica de forma privada y segura.</p>
-            <div style={{ marginTop: '40px', fontSize: '1.2rem', color: '#333', fontWeight: 'bold' }}>
-              {formatoFechaHora(fechaActual).fecha}
-              <div style={{ fontSize: '0.8rem', color: 'red', marginTop: '10px' }}>v22.0 DEBUG - VERIFICACIÓN</div>
-            </div>
+            <div style={{ marginTop: '40px', fontSize: '1.2rem', color: '#333', fontWeight: 'bold' }}>{formatoFechaHora(fechaActual).fecha}</div>
             <div style={{ marginTop: '80px', cursor: 'pointer', opacity: 0.3, fontSize: '0.8rem' }} onClick={() => setView('login')}>🔒 Acceso Administrativo</div>
           </div>
         ) : (
