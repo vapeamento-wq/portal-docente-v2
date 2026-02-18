@@ -10,12 +10,12 @@ const Header = ({ onReset, docente, searchTerm, setSearchTerm, onSearch, loading
         </div>
         <div className="w-full md:w-auto flex justify-center">
           {!docente && (
-            <form onSubmit={onSearch} className="bg-white p-1 rounded-full flex shadow-lg transition-transform w-full md:w-auto">
+            <form onSubmit={onSearch} className="bg-white dark:bg-slate-800 p-1 rounded-full flex shadow-lg transition-transform w-full md:w-auto">
               <input
                 placeholder="Cédula del Docente"
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                className="p-3 px-5 rounded-full border-none outline-none text-base w-full md:w-[200px] bg-transparent"
+                className="p-3 px-5 rounded-full border-none outline-none text-base w-full md:w-[200px] bg-transparent dark:text-white placeholder:text-gray-400"
               />
               <button className="bg-[#db9b32] text-[#003366] border-none py-2 px-6 font-extrabold rounded-full uppercase tracking-wider cursor-pointer hover:bg-[#c68a2e] transition-colors whitespace-nowrap">
                 {loading ? '...' : 'CONSULTAR'}

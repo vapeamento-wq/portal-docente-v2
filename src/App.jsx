@@ -77,12 +77,22 @@ const App = () => {
 
 
 
+  // --- 💾 PERSISTENCIA (RECORDARME) ---
+  useEffect(() => {
+    const storedId = localStorage.getItem('portal_docente_id');
+    if (storedId) {
+      setSearchTerm(storedId);
+      setSearchId(storedId);
+    }
+  }, []);
+
   // --- BÚSQUEDA PRINCIPAL ---
   const handleSearch = (e) => {
     e.preventDefault();
     const idBusqueda = searchTerm.replace(/\D/g, '');
     if (!idBusqueda) { showToast('❌ Documento inválido'); return; }
 
+    localStorage.setItem('portal_docente_id', idBusqueda); // Guardar ID
     setDocente(null);
     setSearchId(idBusqueda); // Trigger SWR
   };
@@ -105,6 +115,7 @@ const App = () => {
   };
 
   const handleReset = () => {
+    localStorage.removeItem('portal_docente_id'); // Borrar ID
     setDocente(null);
     setSearchTerm('');
     setSearchId(null);
@@ -134,7 +145,7 @@ const App = () => {
 
   // --- VISTA USUARIO ---
   return (
-    <div className="min-h-screen bg-[#F0F2F5] text-[#1A1A1A] font-sans selection:bg-[#003366] selection:text-white pb-10">
+    <div className="min-h-screen bg-[#F0F2F5] dark:bg-slate-900 text-[#1A1A1A] dark:text-gray-100 font-sans selection:bg-[#003366] dark:selection:bg-blue-500 selection:text-white pb-10 transition-colors duration-300">
       <Toast msg={toast.msg} show={toast.show} />
 
       {/* LOGIN ADMIN */}
@@ -158,12 +169,12 @@ const App = () => {
 
       <main className="max-w-7xl mx-auto mt-10 px-5 grid grid-cols-1 md:grid-cols-[320px_1fr] gap-10 pb-24">
         {!docente ? (
-          <div className="col-span-1 md:col-span-2 text-center py-24 bg-white/95 backdrop-blur-md border border-white/20 shadow-lg rounded-[20px] animate-[fadeInUp_0.6s_ease-out_forwards]">
+          <div className="col-span-1 md:col-span-2 text-center py-24 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border border-white/20 dark:border-white/5 shadow-lg rounded-[20px] animate-[fadeInUp_0.6s_ease-out_forwards] transition-all duration-300">
             <div className="text-8xl mb-5">👨‍🏫</div>
-            <h1 className="text-[#003366] mb-4 text-4xl font-bold">Portal Docente</h1>
-            <p className="text-gray-500 max-w-xl mx-auto text-lg leading-relaxed">Gestiona tu programación académica de forma privada y segura.</p>
-            <div className="mt-10 text-xl text-gray-800 font-bold capitalize">{formatoFechaHora(fechaActual).fecha}</div>
-            <div className="mt-20 cursor-pointer opacity-30 text-xs hover:opacity-100 transition-opacity" onClick={() => setView('login')}>🔒 Acceso Administrativo</div>
+            <h1 className="text-[#003366] dark:text-blue-400 mb-4 text-4xl font-bold">Portal Docente</h1>
+            <p className="text-gray-500 dark:text-gray-400 max-w-xl mx-auto text-lg leading-relaxed">Gestiona tu programación académica de forma privada y segura.</p>
+            <div className="mt-10 text-xl text-gray-800 dark:text-gray-200 font-bold capitalize">{formatoFechaHora(fechaActual).fecha}</div>
+            <div className="mt-20 cursor-pointer opacity-30 text-xs hover:opacity-100 transition-opacity dark:text-gray-400" onClick={() => setView('login')}>🔒 Acceso Administrativo</div>
           </div>
         ) : (
           <>

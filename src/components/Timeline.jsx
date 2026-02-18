@@ -5,20 +5,20 @@ const Timeline = ({ cursoActivo, docenteId }) => {
     if (!cursoActivo) return null;
 
     return (
-        <div className="p-10 bg-white rounded-[30px] shadow-sm">
-            <h3 className="text-[#003366] mb-8 text-xl font-bold">Cronograma de Actividades</h3>
+        <div className="p-10 bg-white dark:bg-slate-800 rounded-[30px] shadow-sm transition-colors duration-300">
+            <h3 className="text-[#003366] dark:text-blue-400 mb-8 text-xl font-bold transition-colors">Cronograma de Actividades</h3>
             {cursoActivo.semanas.map((s, idx) => (
-                <div key={idx} className={`flex gap-6 mb-8 relative group ${s.status === 'past' ? 'opacity-60' : ''}`}>
+                <div key={idx} className={`flex gap-6 mb-8 relative group ${s.status === 'past' ? 'opacity-60 grayscale-[0.5]' : ''}`}>
                     {/* Line */}
-                    <div className={`absolute left-[23px] top-12 -bottom-8 w-[3px] ${s.status === 'present' ? 'bg-[#25D366]' :
-                            s.status === 'future' ? 'bg-[#003366]' : 'bg-gray-200'
+                    <div className={`absolute left-[23px] top-12 -bottom-8 w-[3px] transition-colors ${s.status === 'present' ? 'bg-[#25D366]' :
+                            s.status === 'future' ? 'bg-[#003366] dark:bg-blue-500' : 'bg-gray-200 dark:bg-slate-700'
                         }`}></div>
 
                     {/* Date Circle */}
                     <div className={`w-[50px] h-[50px] rounded-full border-[3px] flex flex-col items-center justify-center font-bold z-10 transition-colors
                         ${s.status === 'present' ? 'bg-[#25D366] border-[#25D366] text-white shadow-[0_5px_15px_rgba(37,211,102,0.2)]' :
-                            s.status === 'future' ? 'bg-[#003366] border-[#003366] text-white' :
-                                'bg-[#f5f5f5] border-gray-200 text-gray-300'
+                            s.status === 'future' ? 'bg-[#003366] dark:bg-blue-500 border-[#003366] dark:border-blue-500 text-white' :
+                                'bg-[#f5f5f5] border-gray-200 text-gray-300 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-500'
                         }`}>
                         <span className="text-[0.65rem]">SEM</span>
                         <span className="text-xl leading-none">{s.num}</span>
@@ -26,13 +26,13 @@ const Timeline = ({ cursoActivo, docenteId }) => {
 
                     {/* Content */}
                     <div className={`flex-1 p-6 rounded-2xl border transition-all duration-300
-                        ${s.status === 'present' ? 'bg-white border-[#25D366] shadow-[0_10px_25px_rgba(37,211,102,0.15)] scale-[1.02]' :
-                            s.status === 'past' ? 'bg-gray-50/50 border-transparent' :
-                                'bg-gray-50 border-gray-100 hover:bg-white hover:border-[#db9b32] hover:shadow-lg'
+                        ${s.status === 'present' ? 'bg-white dark:bg-slate-700 border-[#25D366] shadow-[0_10px_25px_rgba(37,211,102,0.15)] scale-[1.02]' :
+                            s.status === 'past' ? 'bg-gray-50/50 dark:bg-slate-800/50 border-transparent' :
+                                'bg-gray-50 border-gray-100 dark:bg-slate-700/30 dark:border-slate-600 hover:bg-white dark:hover:bg-slate-700 hover:border-[#db9b32] dark:hover:border-yellow-500 hover:shadow-lg'
                         }`}>
 
                         <div className="flex justify-between items-center mb-2">
-                            <div className="font-bold text-lg text-gray-800">{s.fecha}</div>
+                            <div className="font-bold text-lg text-gray-800 dark:text-gray-200 transition-colors">{s.fecha}</div>
                             {(() => {
                                 if (s.status === 'present' || s.status === 'future') {
                                     const today = new Date();
@@ -54,12 +54,12 @@ const Timeline = ({ cursoActivo, docenteId }) => {
                         </div>
 
                         {s.tipo === 'INDEPENDIENTE' ? (
-                            <div className="inline-block bg-blue-50 text-blue-800 px-4 py-2 rounded-full text-sm font-bold mt-2 border border-blue-100">🏠 {s.displayTexto}</div>
+                            <div className="inline-block bg-blue-50 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200 dark:border-blue-800/50 px-4 py-2 rounded-full text-sm font-bold mt-2 border border-blue-100 transition-colors">🏠 {s.displayTexto}</div>
                         ) : s.tipo === 'PRESENCIAL' ? (
-                            <div className="inline-block bg-blue-50 text-blue-800 px-4 py-2 rounded-full text-sm font-bold mt-2 border border-blue-100">🏫 {s.displayTexto} <br /> ⏰ {s.hora}</div>
+                            <div className="inline-block bg-blue-50 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200 dark:border-blue-800/50 px-4 py-2 rounded-full text-sm font-bold mt-2 border border-blue-100 transition-colors">🏫 {s.displayTexto} <br /> ⏰ {s.hora}</div>
                         ) : (
                             <>
-                                <div className="text-gray-500 mt-1">⏰ {s.hora}</div>
+                                <div className="text-gray-500 dark:text-gray-400 mt-1 transition-colors">⏰ {s.hora}</div>
                                 <div className="flex gap-2 flex-wrap mt-3">
                                     {s.zoomLink && (
                                         <a href={s.zoomLink} target="_blank" rel="noreferrer"
