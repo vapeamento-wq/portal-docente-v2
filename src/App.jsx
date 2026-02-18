@@ -202,9 +202,19 @@ const App = () => {
         .toast-notification.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 
         @media (max-width: 900px) { 
-          .main-content { display: flex; flex-direction: column; } 
+          .main-content { display: flex; flex-direction: column; padding-bottom: 100px; } 
           .sidebar { order: -1; display: flex; overflow-x: auto; padding: 15px; gap: 15px; }
           .course-btn { min-width: 240px; margin-bottom: 0; }
+          
+          /* Header Mobile Fixes */
+          .header-content { flex-direction: column; gap: 15px; padding-bottom: 15px; }
+          .brand { text-align: center; }
+          .search-container { width: 100%; box-sizing: border-box; }
+          .search-container input { width: 100%; }
+          .actions { width: 100%; display: flex; justify-content: center; }
+          
+          /* Footer overlap fix */
+          .whatsapp-btn { bottom: 20px; right: 20px; font-size: 0.9rem; padding: 12px 20px; }
         }
       `}</style>
 
