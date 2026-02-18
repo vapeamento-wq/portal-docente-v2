@@ -170,7 +170,9 @@ export const procesarCursos = (cursos) => {
         ubicacion: ubicacion,
         zoomId: zoomId,
         zoomLink: finalLink,
-        status: status // 'past', 'present', 'future'
+        status: status, // 'past', 'present', 'future'
+        fechaObj: fechaObj, // Passed for countdown logic
+        fechaRaw: fechaObj ? fechaObj.toISOString() : null
       });
     });
     return { ...curso, semanas: semanasProcesadas };

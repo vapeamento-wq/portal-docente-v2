@@ -12,6 +12,7 @@ const Sidebar = ({ docente, selectedCursoIdx, setSelectedCursoIdx }) => {
             {docente.cursos.map((c, i) => (
                 <button key={i} onClick={() => setSelectedCursoIdx(i)} className={`course-btn ${selectedCursoIdx === i ? 'active' : ''}`}>
                     <div style={{ fontWeight: 'bold', fontSize: '0.95rem', color: 'var(--primary)' }}>{c.materia}</div>
+                    <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '2px' }}>{c.horario || 'Ver Cronograma'}</div>
                     <div className="bloque-badge">{c.bloque}</div>
                 </button>
             ))}

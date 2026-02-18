@@ -17,7 +17,26 @@ const Timeline = ({ cursoActivo, docenteId }) => {
                     <div className="timeline-content">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                             <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{s.fecha}</div>
-                            {s.status === 'present' && <span style={{ background: '#25D366', color: 'white', fontSize: '0.7rem', padding: '2px 8px', borderRadius: '10px' }}>HOY</span>}
+                            {(() => {
+                                if (s.status === 'present' || s.status === 'future') {
+                                    const today = new Date();
+                                    const eventDate = s.fechaObj ? new Date(s.fechaObj) : null;
+
+                                    if (!eventDate) return null;
+
+                                    // Reset hours to compare days only
+                                    today.setHours(0, 0, 0, 0);
+                                    eventDate.setHours(0, 0, 0, 0);
+
+                                    const diffTime = eventDate - today;
+                                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                                    if (diffDays === 0) return <span style={{ background: '#25D366', color: 'white', fontSize: '0.7rem', padding: '2px 8px', borderRadius: '10px' }}>HOY</span>;
+                                    if (diffDays === 1) return <span style={{ background: '#007bff', color: 'white', fontSize: '0.7rem', padding: '2px 8px', borderRadius: '10px' }}>MAÑANA</span>;
+                                    if (diffDays > 1) return <span style={{ background: '#007bff', color: 'white', fontSize: '0.7rem', padding: '2px 8px', borderRadius: '10px' }}>Faltan {diffDays} días</span>;
+                                }
+                                return null;
+                            })()}
                         </div>
 
                         {s.tipo === 'INDEPENDIENTE' ? (
