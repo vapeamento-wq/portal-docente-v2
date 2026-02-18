@@ -4,17 +4,17 @@ const HeroCard = ({ cursoActivo }) => {
     if (!cursoActivo) return null;
 
     return (
-        <div className="hero-card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div className="bg-gradient-to-br from-[#003366] to-[#004080] text-white p-10 rounded-[30px] relative overflow-hidden mb-10 shadow-[0_20px_40px_rgba(0,51,102,0.3)]">
+            <div className="flex justify-between items-start">
                 <div>
-                    <h1 style={{ margin: '0 0 10px', fontSize: '2.2rem' }}>{cursoActivo.materia}</h1>
-                    <div style={{ fontSize: '1.1rem', opacity: 0.9 }}>{cursoActivo.grupo}</div>
+                    <h1 className="m-0 mb-2 text-4xl font-normal">{cursoActivo.materia}</h1>
+                    <div className="text-lg opacity-90">{cursoActivo.grupo}</div>
                 </div>
 
             </div>
-            <div className="hero-info-grid">
-                <div className="hero-info-item">📅 <strong>{cursoActivo.fInicio}</strong> (Inicio)</div>
-                <div className="hero-info-item">🏁 <strong>{cursoActivo.fFin}</strong> (Fin)</div>
+            <div className="flex gap-5 mt-6 flex-wrap bg-black/25 p-4 rounded-2xl backdrop-blur-sm">
+                <div className="flex items-center gap-2 font-medium text-[0.95rem]">📅 <strong>{cursoActivo.fInicio}</strong> (Inicio)</div>
+                <div className="flex items-center gap-2 font-medium text-[0.95rem]">🏁 <strong>{cursoActivo.fFin}</strong> (Fin)</div>
             </div>
         </div>
     );

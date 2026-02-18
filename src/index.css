@@ -1,4 +1,9 @@
-/* Reseting index.css to allow App.jsx styles to take precedence */
+/* Tailwind Directives */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Reseting index.css was here, Tailwind base handles this now */
 body {
   margin: 0;
   padding: 0;
