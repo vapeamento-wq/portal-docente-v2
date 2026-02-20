@@ -32,10 +32,10 @@ const AdminPanel = ({ onBack, adminSearch, setAdminSearch, adminResult, onAdminD
         reader.onload = async (evt) => {
             try {
                 const data = new Uint8Array(evt.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
+                const workbook = XLSX.read(data, { type: 'array', cellDates: true });
                 const sheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[sheetName];
-                const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: false, dateNF: 'dd/mm/yyyy' });
 
                 let docentesDB = {};
                 let countCursos = 0;
@@ -60,6 +60,8 @@ const AdminPanel = ({ onBack, adminSearch, setAdminSearch, adminResult, onAdminD
                         materia: asignatura,
                         grupo: row[11] || '',
                         bloque: row[14] || '',
+                        fInicio: row[48] || '', // FECHA INICIAL
+                        fFin: row[49] || '',    // FECHA FINAL
                         semanasRaw: []
                     };
 
