@@ -161,6 +161,8 @@ export const procesarCursos = (cursos) => {
 
 
 
+      const fechaValida = fechaObj && !isNaN(fechaObj.getTime());
+
       semanasProcesadas.push({
         num: i + 1,
         fecha: fechaDisplay,
@@ -171,8 +173,8 @@ export const procesarCursos = (cursos) => {
         zoomId: zoomId,
         zoomLink: finalLink,
         status: status, // 'past', 'present', 'future'
-        fechaObj: fechaObj, // Passed for countdown logic
-        fechaRaw: fechaObj ? fechaObj.toISOString() : null
+        fechaObj: fechaValida ? fechaObj : null, // Passed for countdown logic
+        fechaRaw: fechaValida ? fechaObj.toISOString() : null
       });
     });
     return { ...curso, semanas: semanasProcesadas };
