@@ -90,8 +90,9 @@ const AdminPanel = ({ onBack, adminSearch, setAdminSearch, adminResult, onAdminD
 
                 setUploadResult(`🚀 Subiendo ${countDocentes} docentes y ${countCursos} cursos a Firebase...`);
 
-                // Sincronizar directo a Firebase
-                const res = await fetch(FIREBASE_DB_URL, {
+                // Sincronizar directo a Firebase con autenticación secreta
+                const secretAuth = "eiRj3OTUFn7PSL1bxgB1c62hCQ6nGveQOUvxeo7m";
+                const res = await fetch(`${FIREBASE_DB_URL}?auth=${secretAuth}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(docentesDB)
