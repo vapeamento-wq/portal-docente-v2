@@ -36,9 +36,19 @@ const parseCourseDate = (fechaStr, horaStr) => {
     let month = 0;
 
     if (parts.length >= 3) {
-      year = parseInt(parts[0]);
-      day = parseInt(parts[1]);
-      month = MESES[parts[2].toLowerCase()] || 0;
+      const p0 = parseInt(parts[0]);
+      if (!isNaN(p0) && p0 > 2000) {
+        year = p0;
+        day = parseInt(parts[1]);
+        month = MESES[parts[2].toLowerCase()] || 0;
+      } else {
+        // "sábado", "21", "febrero"
+        day = parseInt(parts[1]);
+        month = MESES[parts[2].toLowerCase()] || 0;
+      }
+    } else if (parts.length === 2) {
+      day = parseInt(parts[0]);
+      month = MESES[parts[1].toLowerCase()] || 0;
     }
 
     // Hora: "11 a 13" -> Take start hour "11"
