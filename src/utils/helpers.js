@@ -78,11 +78,17 @@ const parseCourseDate = (fechaStr, horaStr) => {
       month = MESES[parts[1].toLowerCase()] || 0;
     }
 
-    // Hora: "11 a 13" -> Take start hour "11"
+    // Hora: "11 a 13" o "7 A 9" -> Take start hour "11" o "7"
     let hour = 9; // Default
-    if (horaStr && horaStr.includes('a')) {
-      const horaParts = horaStr.split('a');
-      hour = parseInt(horaParts[0].trim());
+    if (horaStr) {
+      const horaLimpia = horaStr.toLowerCase();
+      if (horaLimpia.includes('a')) {
+        const horaParts = horaLimpia.split('a');
+        hour = parseInt(horaParts[0].trim());
+      } else {
+        const num = parseInt(horaLimpia.trim());
+        if (!isNaN(num)) hour = num;
+      }
     }
 
     return new Date(year, month, day, hour);
