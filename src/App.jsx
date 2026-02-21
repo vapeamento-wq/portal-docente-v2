@@ -80,8 +80,26 @@ const App = () => {
         const dbBaseUrl = import.meta.env.VITE_FIREBASE_DB_BASE_URL;
         const res = await fetch(`${dbBaseUrl}/config/anuncio.json`);
         const data = await res.json();
+
         if (data && data.texto && data.texto.trim() !== '') {
-          setAnuncio(data.texto);
+          const now = new Date();
+          let esValido = true;
+
+          if (data.inicio) {
+            const fechaInicio = new Date(data.inicio);
+            if (now < fechaInicio) esValido = false;
+          }
+
+          if (data.fin) {
+            const fechaFin = new Date(data.fin);
+            if (now > fechaFin) esValido = false;
+          }
+
+          if (esValido) {
+            setAnuncio(data.texto);
+          } else {
+            setAnuncio(null);
+          }
         } else {
           setAnuncio(null);
         }

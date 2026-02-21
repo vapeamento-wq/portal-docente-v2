@@ -16,6 +16,8 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
     const [loadingDocentes, setLoadingDocentes] = useState(true);
     const [docentesListFull, setDocentesListFull] = useState([]); // Raw data for radar
     const [anuncioGlobal, setAnuncioGlobal] = useState('');
+    const [anuncioInicio, setAnuncioInicio] = useState('');
+    const [anuncioFin, setAnuncioFin] = useState('');
     const [guardandoAnuncio, setGuardandoAnuncio] = useState(false);
 
     useEffect(() => {
@@ -56,6 +58,8 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                 const dataAnuncio = await resAnuncio.json();
                 if (dataAnuncio && dataAnuncio.texto) {
                     setAnuncioGlobal(dataAnuncio.texto);
+                    if (dataAnuncio.inicio) setAnuncioInicio(dataAnuncio.inicio);
+                    if (dataAnuncio.fin) setAnuncioFin(dataAnuncio.fin);
                 }
             } catch (err) {
                 console.error("Error fetching admin data:", err);
@@ -207,7 +211,12 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
             await fetch(`${dbBaseUrl}/config/anuncio.json?auth=${secretAuth}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ texto: anuncioGlobal, fecha: new Date().toISOString() })
+                body: JSON.stringify({
+                    texto: anuncioGlobal,
+                    inicio: anuncioInicio || null,
+                    fin: anuncioFin || null,
+                    fechaActualizacion: new Date().toISOString()
+                })
             });
             alert('Anuncio Global actualizado y publicado con éxito.');
         } catch (err) {
@@ -298,18 +307,42 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
 
                 {/* NUEVO: Anuncio Global */}
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-100 dark:border-slate-700 transition-colors mb-8">
-                    <h4 className="m-0 mb-4 text-[#003366] dark:text-blue-400 font-bold text-xl">📢 Anuncio Global</h4>
+                    <h4 className="m-0 mb-4 text-[#003366] dark:text-blue-400 font-bold text-xl">📢 Anuncio Global Programable</h4>
                     <form onSubmit={handleGuardarAnuncio} className="flex flex-col gap-4">
                         <textarea
                             value={anuncioGlobal}
                             onChange={(e) => setAnuncioGlobal(e.target.value)}
-                            placeholder="Escribe un mensaje aquí para que todos los docentes lo vean al entrar..."
+                            placeholder="Escribe un mensaje aquí. Ej: Estaremos en mantenimiento el sábado..."
                             className="w-full p-4 rounded-xl border border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003366] dark:focus:ring-blue-500 transition-all min-h-[100px] resize-y"
                         ></textarea>
-                        <div className="flex justify-between items-center">
-                            <span className="text-xs text-gray-500 dark:text-gray-400">El mensaje saltará como una alerta destacada. Déjalo en blanco para desactivarlo.</span>
-                            <button type="submit" disabled={guardandoAnuncio} className="px-6 py-2 bg-[#003366] dark:bg-blue-600 text-white font-bold rounded-xl hover:bg-[#002244] dark:hover:bg-blue-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
-                                {guardandoAnuncio ? 'Guardando...' : 'Publicar Anuncio'}
+
+                        <div className="flex flex-col md:flex-row gap-4 bg-gray-50 dark:bg-slate-900/50 p-4 rounded-xl border border-gray-100 dark:border-slate-700">
+                            <div className="flex-1 flex flex-col gap-1">
+                                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Mostrar Desde (Opcional)</label>
+                                <input
+                                    type="datetime-local"
+                                    value={anuncioInicio}
+                                    onChange={(e) => setAnuncioInicio(e.target.value)}
+                                    className="p-2.5 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white focus:ring-2 focus:ring-[#003366] text-sm"
+                                />
+                            </div>
+                            <div className="flex-1 flex flex-col gap-1">
+                                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Ocultar El (Opcional)</label>
+                                <input
+                                    type="datetime-local"
+                                    value={anuncioFin}
+                                    onChange={(e) => setAnuncioFin(e.target.value)}
+                                    className="p-2.5 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white focus:ring-2 focus:ring-[#003366] text-sm"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex justify-between items-center mt-2">
+                            <span className="text-xs text-gray-500 dark:text-gray-400 max-w-sm">
+                                Si dejas las fechas en blanco y guardas un texto, se mostrará <b>inmediatamente</b> y por tiempo indefinido. Borra el texto para desactivarlo por completo.
+                            </span>
+                            <button type="submit" disabled={guardandoAnuncio} className="px-6 py-2.5 bg-[#003366] dark:bg-blue-600 text-white font-bold rounded-xl hover:bg-[#002244] dark:hover:bg-blue-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-md">
+                                {guardandoAnuncio ? 'Guardando...' : 'Guardar y Publicar'}
                             </button>
                         </div>
                     </form>
