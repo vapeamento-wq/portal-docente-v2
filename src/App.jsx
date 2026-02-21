@@ -27,6 +27,7 @@ const App = () => {
   const [searchId, setSearchId] = useState(null); // ID real para SWR
   const [docente, setDocente] = useState(null);
   const [selectedCursoIdx, setSelectedCursoIdx] = useState(0);
+  const [anuncio, setAnuncio] = useState(null);
 
   const [fechaActual, setFechaActual] = useState(new Date());
   const [toast, setToast] = useState({ show: false, msg: '' });
@@ -72,7 +73,24 @@ const App = () => {
     return () => clearInterval(timer);
   }, []);
 
-
+  // Fetch Global Announcement
+  useEffect(() => {
+    const fetchAnuncio = async () => {
+      try {
+        const dbBaseUrl = import.meta.env.VITE_FIREBASE_DB_BASE_URL;
+        const res = await fetch(`${dbBaseUrl}/config/anuncio.json`);
+        const data = await res.json();
+        if (data && data.texto && data.texto.trim() !== '') {
+          setAnuncio(data.texto);
+        } else {
+          setAnuncio(null);
+        }
+      } catch (err) {
+        console.error("Error fetching announcement:", err);
+      }
+    };
+    fetchAnuncio();
+  }, [view]); // Refetch when view changes (e.g. returning from Admin)
 
   // --- 💾 PERSISTENCIA (RECORDARME) ---
   useEffect(() => {
@@ -150,6 +168,20 @@ const App = () => {
         onSearch={handleSearch}
         loading={isLoading}
       />
+
+      {anuncio && view !== 'admin' && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-7xl mx-auto mt-6 px-5"
+        >
+          <div className="bg-blue-50 border-l-4 border-blue-500 text-blue-700 p-4 rounded-r-lg shadow-sm flex items-start gap-3">
+            <span className="text-xl">📢</span>
+            <div className="flex-1 whitespace-pre-wrap">{anuncio}</div>
+            <button onClick={() => setAnuncio(null)} className="text-blue-400 hover:text-blue-600 font-bold px-2 py-1 cursor-pointer">✕</button>
+          </div>
+        </motion.div>
+      )}
 
       <main className="max-w-7xl mx-auto mt-10 px-5 grid grid-cols-1 md:grid-cols-[320px_1fr] gap-10 pb-24">
         <AnimatePresence mode="wait">
