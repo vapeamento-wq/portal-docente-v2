@@ -1,25 +1,58 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { URL_TU_EXCEL_MAESTRO, URL_FIREBASE_CONSOLE } from '../utils/helpers';
 
 const FIREBASE_DB_URL = `${import.meta.env.VITE_FIREBASE_DB_BASE_URL}/docentes.json`;
 
-const MOCK_ANALYTICS = {
-    daily: [
-        { name: 'Lun', consultas: 12 }, { name: 'Mar', consultas: 19 }, { name: 'Mie', consultas: 15 },
-        { name: 'Jue', consultas: 25 }, { name: 'Vie', consultas: 22 }, { name: 'Sab', consultas: 30 },
-        { name: 'Dom', consultas: 10 },
-    ],
-    hourly: [
-        { name: '08:00', hits: 5 }, { name: '10:00', hits: 12 }, { name: '12:00', hits: 8 },
-        { name: '14:00', hits: 15 }, { name: '16:00', hits: 20 }, { name: '18:00', hits: 18 },
-    ]
-};
+// MOCK_ANALYTICS has been removed in favor of real Firebase data
 
 const AdminPanel = ({ onBack, adminSearch, setAdminSearch, adminResult, onAdminDiagnostico }) => {
     const [uploading, setUploading] = useState(false);
     const [uploadResult, setUploadResult] = useState(null);
+    const [docentesList, setDocentesList] = useState([]);
+    const [analyticsData, setAnalyticsData] = useState([]);
+    const [filterDocente, setFilterDocente] = useState('');
+    const [loadingDocentes, setLoadingDocentes] = useState(true);
+
+    useEffect(() => {
+        // Fetch current teachers on mount
+        const fetchData = async () => {
+            try {
+                // Fetch Teachers
+                const resDocentes = await fetch(FIREBASE_DB_URL);
+                const dataDocentes = await resDocentes.json();
+                if (dataDocentes) {
+                    const list = Object.values(dataDocentes).map(d => ({
+                        id: d.idReal,
+                        nombre: d.nombre,
+                        cursosCount: d.cursos ? d.cursos.length : 0
+                    }));
+                    setDocentesList(list);
+                } else {
+                    setDocentesList([]);
+                }
+
+                // Fetch Analytics
+                const dbBaseUrl = import.meta.env.VITE_FIREBASE_DB_BASE_URL;
+                const resStats = await fetch(`${dbBaseUrl}/analytics/daily.json`);
+                const dataStats = await resStats.json();
+                if (dataStats) {
+                    // Convert object {"YYYY-MM-DD": count} to array [{name: "DD/MM", consultas: count}]
+                    const formattedStats = Object.keys(dataStats).slice(-10).map(dateStr => {
+                        const [yyyy, mm, dd] = dateStr.split('-');
+                        return { name: `${dd}/${mm}`, consultas: dataStats[dateStr] };
+                    });
+                    setAnalyticsData(formattedStats);
+                }
+            } catch (err) {
+                console.error("Error fetching admin data:", err);
+            } finally {
+                setLoadingDocentes(false);
+            }
+        };
+        fetchData();
+    }, []);
 
     const handleFileUpload = (e) => {
         const file = e.target.files[0];
@@ -122,12 +155,12 @@ const AdminPanel = ({ onBack, adminSearch, setAdminSearch, adminResult, onAdminD
                 <div className="flex justify-between items-center mb-8 border-b border-gray-200 dark:border-slate-700 pb-5">
                     <div>
                         <h2 className="text-[#003366] dark:text-blue-400 m-0 text-2xl font-bold">PANEL INTELIGENTE</h2>
-                        <p className="text-gray-500 dark:text-gray-400 mt-1 mb-0">Sincronización de Base de Datos</p>
+                        <p className="text-gray-500 dark:text-gray-400 mt-1 mb-0">Sincronización y Configuración</p>
                     </div>
                     <button onClick={onBack} className="cursor-pointer px-6 py-2.5 rounded-full border-none bg-gray-100 dark:bg-slate-700 font-bold text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors">⬅ Volver</button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
 
                     {/* NUEVO: Subida de Excel Mágico */}
                     <div className="bg-[#f5f9ff] dark:bg-blue-900/20 p-6 rounded-2xl border-2 border-dashed border-[#007bff] text-center flex flex-col justify-center transition-colors">
@@ -168,12 +201,18 @@ const AdminPanel = ({ onBack, adminSearch, setAdminSearch, adminResult, onAdminD
                     <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-gray-100 dark:border-slate-700 h-[300px] transition-colors">
                         <h4 className="m-0 mb-5 text-[#003366] dark:text-blue-400 font-bold text-lg">📊 Consultas por Día</h4>
                         <ResponsiveContainer width="100%" height="85%">
-                            <BarChart data={MOCK_ANALYTICS.daily}>
-                                <XAxis dataKey="name" fontSize={12} stroke="#888" />
-                                <YAxis fontSize={12} stroke="#888" />
-                                <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }} />
-                                <Bar dataKey="consultas" fill="#003366" radius={[4, 4, 0, 0]} className="dark:fill-blue-500" />
-                            </BarChart>
+                            {analyticsData.length > 0 ? (
+                                <BarChart data={analyticsData}>
+                                    <XAxis dataKey="name" fontSize={12} stroke="#888" />
+                                    <YAxis fontSize={12} stroke="#888" allowDecimals={false} />
+                                    <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }} />
+                                    <Bar dataKey="consultas" fill="#003366" radius={[4, 4, 0, 0]} className="dark:fill-blue-500" />
+                                </BarChart>
+                            ) : (
+                                <div className="h-full flex items-center justify-center text-sm text-gray-400">
+                                    No hay suficientes datos registrados todavía.
+                                </div>
+                            )}
                         </ResponsiveContainer>
                     </div>
 
@@ -199,6 +238,68 @@ const AdminPanel = ({ onBack, adminSearch, setAdminSearch, adminResult, onAdminD
                             </form>
                             {adminResult && <div className="mt-4 text-sm whitespace-pre-wrap text-gray-700 dark:text-gray-300 bg-white dark:bg-slate-900 p-3 rounded-lg border border-gray-200 dark:border-slate-700">{adminResult}</div>}
                         </div>
+                    </div>
+                </div>
+
+                {/* Directorio de Docentes Real */}
+                <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-100 dark:border-slate-700 transition-colors overflow-hidden">
+                    <div className="flex justify-between items-center flex-wrap gap-4 mb-6">
+                        <h4 className="m-0 text-[#003366] dark:text-blue-400 font-bold text-xl">👥 Docentes Sincronizados ({docentesList.length})</h4>
+                        <input
+                            type="text"
+                            placeholder="Buscar docente o cédula..."
+                            value={filterDocente}
+                            onChange={(e) => setFilterDocente(e.target.value)}
+                            className="p-3 w-full md:w-64 rounded-xl border border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003366] transition-all font-medium text-sm"
+                        />
+                    </div>
+
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="border-b-2 border-gray-100 dark:border-slate-700">
+                                    <th className="p-3 text-sm text-gray-500 dark:text-gray-400 uppercase font-bold">Nombre del Docente</th>
+                                    <th className="p-3 text-sm text-gray-500 dark:text-gray-400 uppercase font-bold">Cédula</th>
+                                    <th className="p-3 text-sm text-gray-500 dark:text-gray-400 uppercase font-bold">Cursos Asignados</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {loadingDocentes ? (
+                                    <tr>
+                                        <td colSpan="3" className="p-10 text-center text-gray-500">
+                                            <svg className="animate-spin h-6 w-6 mx-auto mb-2 text-[#003366] dark:text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Cargando docentes de Firebase...
+                                        </td>
+                                    </tr>
+                                ) : docentesList.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="3" className="p-6 text-center text-gray-500 dark:text-gray-400">No hay docentes sincronizados actualmente. Sube el Excel.</td>
+                                    </tr>
+                                ) : (
+                                    docentesList
+                                        .filter(d =>
+                                            d.nombre.toLowerCase().includes(filterDocente.toLowerCase()) ||
+                                            d.id.includes(filterDocente)
+                                        )
+                                        .slice(0, 15) // Limit to top 15 matches for quick UI
+                                        .map(d => (
+                                            <tr key={d.id} className="border-b border-gray-50 dark:border-slate-700/50 hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors">
+                                                <td className="p-3 font-semibold text-gray-800 dark:text-gray-200">{d.nombre}</td>
+                                                <td className="p-3 text-gray-600 dark:text-gray-400 font-mono text-sm">{d.id}</td>
+                                                <td className="p-3 text-gray-600 dark:text-gray-400"><span className="bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300 font-bold px-2 py-1 rounded text-xs">{d.cursosCount}</span></td>
+                                            </tr>
+                                        ))
+                                )}
+                            </tbody>
+                        </table>
+                        {docentesList.length > 15 && filterDocente === '' && (
+                            <div className="text-center p-4 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                Mostrando primeros 15 docentes. Usa el buscador para encontrar más.
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

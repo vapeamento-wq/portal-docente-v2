@@ -1,17 +1,30 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { registrarLog } from '../utils/helpers';
 
 const Timeline = ({ cursoActivo, docenteId }) => {
     if (!cursoActivo) return null;
 
     return (
-        <div className="p-10 bg-white dark:bg-slate-800 rounded-[30px] shadow-sm transition-colors duration-300">
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="p-10 bg-white dark:bg-slate-800 rounded-[30px] shadow-sm transition-colors duration-300"
+        >
             <h3 className="text-[#003366] dark:text-blue-400 mb-8 text-xl font-bold transition-colors">Cronograma de Actividades</h3>
             {cursoActivo.semanas.map((s, idx) => (
-                <div key={idx} className={`flex gap-6 mb-8 relative group ${s.status === 'past' ? 'opacity-60 grayscale-[0.5]' : ''}`}>
+                <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, y: 15 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: "-50px" }}
+                    transition={{ duration: 0.4, delay: idx * 0.05 }}
+                    className={`flex gap-6 mb-8 relative group ${s.status === 'past' ? 'opacity-60 grayscale-[0.5]' : ''}`}
+                >
                     {/* Line */}
                     <div className={`absolute left-[23px] top-12 -bottom-8 w-[3px] transition-colors ${s.status === 'present' ? 'bg-[#25D366]' :
-                            s.status === 'future' ? 'bg-[#003366] dark:bg-blue-500' : 'bg-gray-200 dark:bg-slate-700'
+                        s.status === 'future' ? 'bg-[#003366] dark:bg-blue-500' : 'bg-gray-200 dark:bg-slate-700'
                         }`}></div>
 
                     {/* Date Circle */}
@@ -72,9 +85,9 @@ const Timeline = ({ cursoActivo, docenteId }) => {
                             </>
                         )}
                     </div>
-                </div>
+                </motion.div>
             ))}
-        </div>
+        </motion.div>
     );
 };
 

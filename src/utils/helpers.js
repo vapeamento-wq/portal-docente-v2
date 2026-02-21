@@ -15,7 +15,34 @@ export const registrarLog = (documento, accion) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(datosLog)
     }).catch(err => console.log("Error enviando log:", err));
+
+    // Si es una consulta exitosa, registrar también en Firebase Analytics
+    if (accion.includes("Exitosa")) {
+      recordFirebaseHit();
+    }
   } catch (e) { console.error("Error en registrarLog:", e); }
+};
+
+const recordFirebaseHit = async () => {
+  try {
+    const today = new Date();
+    const dateStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
+    const secret = import.meta.env.VITE_FIREBASE_SECRET;
+    const dbUrl = import.meta.env.VITE_FIREBASE_DB_BASE_URL;
+
+    // Fetch current count
+    const getRes = await fetch(`${dbUrl}/analytics/daily/${dateStr}.json`);
+    const currentCount = await getRes.json() || 0;
+
+    // Increment and save
+    await fetch(`${dbUrl}/analytics/daily/${dateStr}.json?auth=${secret}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(currentCount + 1)
+    });
+  } catch (err) {
+    console.error("Error administrando analytics:", err);
+  }
 };
 
 const MESES = {

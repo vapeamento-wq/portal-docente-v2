@@ -4,9 +4,22 @@ const Header = ({ onReset, docente, searchTerm, setSearchTerm, onSearch, loading
   return (
     <header className="bg-[#003366] py-6 relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-5 flex flex-col md:flex-row justify-between items-center relative z-10 gap-4 md:gap-0">
-        <div className="text-center md:text-left cursor-pointer" onClick={onReset}>
+        <div className="text-center md:text-left cursor-pointer flex flex-col justify-center items-center md:items-start" onClick={onReset}>
           <h1 className="m-0 text-[#db9b32] text-2xl md:text-3xl font-extrabold tracking-tighter">PORTAL DOCENTES</h1>
           <h2 className="mt-1 text-xs md:text-sm text-white/80 font-medium tracking-[2px] uppercase">CREO - UNIVERSIDAD DEL MAGDALENA</h2>
+
+          <a
+            href="https://campusvirtual.unimagdalena.edu.co"
+            target="_blank"
+            rel="noreferrer"
+            onClick={(e) => e.stopPropagation()} // Prevent resetting when clicking the link
+            className="mt-3 inline-flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white px-4 py-1.5 rounded-full text-xs font-bold transition-colors border border-white/20"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+            </svg>
+            Campus Virtual
+          </a>
         </div>
         <div className="w-full md:w-auto flex justify-center">
           {!docente && (

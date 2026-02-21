@@ -7,6 +7,7 @@ import Timeline from './components/Timeline';
 import Toast from './components/Toast';
 import LoginModal from './components/LoginModal';
 import AdminPanel from './components/AdminPanel';
+import { motion, AnimatePresence } from 'framer-motion';
 import { registrarLog, procesarCursos, formatoFechaHora, URL_SCRIPT_LOGS } from './utils/helpers';
 
 // --- ⚡ CONFIGURACIÓN MAESTRA (V21.0 - CON LOGS DE ERROR) ---
@@ -168,28 +169,43 @@ const App = () => {
       />
 
       <main className="max-w-7xl mx-auto mt-10 px-5 grid grid-cols-1 md:grid-cols-[320px_1fr] gap-10 pb-24">
-        {!docente ? (
-          <div className="col-span-1 md:col-span-2 text-center py-24 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border border-white/20 dark:border-white/5 shadow-lg rounded-[20px] animate-[fadeInUp_0.6s_ease-out_forwards] transition-all duration-300">
-            <div className="text-8xl mb-5">👨‍🏫</div>
-            <h1 className="text-[#003366] dark:text-blue-400 mb-4 text-4xl font-bold">Portal Docente</h1>
-            <p className="text-gray-500 dark:text-gray-400 max-w-xl mx-auto text-lg leading-relaxed">Gestiona tu programación académica de forma privada y segura.</p>
-            <div className="mt-10 text-xl text-gray-800 dark:text-gray-200 font-bold capitalize">{formatoFechaHora(fechaActual).fecha}</div>
-            <div className="mt-20 cursor-pointer opacity-30 text-xs hover:opacity-100 transition-opacity dark:text-gray-400" onClick={() => setView('login')}>🔒 Acceso Administrativo</div>
-          </div>
-        ) : (
-          <>
-            <Sidebar
-              docente={docente}
-              selectedCursoIdx={selectedCursoIdx}
-              setSelectedCursoIdx={setSelectedCursoIdx}
-            />
+        <AnimatePresence mode="wait">
+          {!docente ? (
+            <motion.div
+              key="welcome"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.4 }}
+              className="col-span-1 md:col-span-2 text-center py-24 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border border-white/20 dark:border-white/5 shadow-lg rounded-[20px] transition-colors duration-300"
+            >
+              <div className="text-8xl mb-5">👨‍🏫</div>
+              <h1 className="text-[#003366] dark:text-blue-400 mb-4 text-4xl font-bold">Portal Docente</h1>
+              <p className="text-gray-500 dark:text-gray-400 max-w-xl mx-auto text-lg leading-relaxed">Gestiona tu programación académica de forma privada y segura.</p>
+              <div className="mt-10 text-xl text-gray-800 dark:text-gray-200 font-bold capitalize">{formatoFechaHora(fechaActual).fecha}</div>
+              <div className="mt-20 cursor-pointer opacity-30 text-xs hover:opacity-100 transition-opacity dark:text-gray-400" onClick={() => setView('login')}>🔒 Acceso Administrativo</div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="dashboard"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-[320px_1fr] gap-10"
+            >
+              <Sidebar
+                docente={docente}
+                selectedCursoIdx={selectedCursoIdx}
+                setSelectedCursoIdx={setSelectedCursoIdx}
+              />
 
-            <section className="flex flex-col gap-8">
-              <HeroCard cursoActivo={cursoActivo} />
-              <Timeline cursoActivo={cursoActivo} docenteId={docente.idReal} />
-            </section>
-          </>
-        )}
+              <section className="flex flex-col gap-8">
+                <HeroCard cursoActivo={cursoActivo} />
+                <Timeline cursoActivo={cursoActivo} docenteId={docente.idReal} />
+              </section>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
 
       <a href={`https://wa.me/${WHATSAPP_NUMBER}`} target="_blank" rel="noreferrer" className="fixed bottom-8 right-8 bg-[#25D366] text-white px-6 py-4 rounded-full font-bold shadow-[0_10px_30px_rgba(37,211,102,0.4)] z-50 hover:scale-105 transition-transform flex items-center gap-2 no-underline">
