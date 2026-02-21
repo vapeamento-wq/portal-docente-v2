@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
-import { URL_TU_EXCEL_MAESTRO, URL_FIREBASE_CONSOLE } from '../utils/helpers';
+import { URL_TU_EXCEL_MAESTRO, URL_FIREBASE_CONSOLE, procesarCursos, registrarLog } from '../utils/helpers';
 
 const FIREBASE_DB_URL = `${import.meta.env.VITE_FIREBASE_DB_BASE_URL}/docentes.json`;
 
@@ -175,13 +175,17 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
         const activos = [];
 
         docentesListFull.forEach(docente => {
-            if (!docente.cursos) return;
+            if (!docente.cursos || docente.cursos.length === 0) return;
 
-            docente.cursos.forEach(curso => {
+            // Procesamos los cursos usando helper para obtener fechas y status precisos calculados en tiempo real
+            const cursosProcesados = procesarCursos(docente.cursos);
+
+            cursosProcesados.forEach(curso => {
                 if (!curso.semanas) return;
 
                 curso.semanas.forEach(semana => {
-                    if (semana.fechaObj) {
+                    // Queremos los que pasen hoy y que tengan zoomLink (ignorar independientes)
+                    if (semana.fechaObj && semana.tipo !== 'INDEPENDIENTE' && semana.zoomLink) {
                         const eventDate = new Date(semana.fechaObj);
                         eventDate.setHours(0, 0, 0, 0);
                         if (eventDate.getTime() === today.getTime()) {
@@ -191,13 +195,19 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                                 cursoMateria: curso.materia,
                                 tipo: semana.tipo,
                                 hora: semana.hora,
-                                numSemana: semana.num
+                                numSemana: semana.num,
+                                status: semana.status, // past, present, future (calculado por procesarCursos)
+                                zoomLink: semana.zoomLink,
+                                exactTime: semana.fechaObj.getTime()
                             });
                         }
                     }
                 });
             });
         });
+
+        // Ordenamos cronológicamente (ascending)
+        activos.sort((a, b) => a.exactTime - b.exactTime);
 
         setRadarHoy(activos);
     }, [docentesListFull]);
@@ -357,28 +367,71 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                             <h4 className="m-0 text-orange-500 font-bold text-lg flex items-center gap-2">🔥 Radar (Hoy)</h4>
                             <span className="bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400 font-bold px-2.5 py-1 rounded-full text-xs">{radarHoy.length} Activos</span>
                         </div>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 pb-4 border-b border-gray-100 dark:border-slate-700">Docentes con programación para el día de hoy.</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 pb-4 border-b border-gray-100 dark:border-slate-700">Clases remotas programadas para el día de hoy ordenadas por hora.</p>
 
-                        <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
+                        <div className="flex-1 overflow-y-auto pr-2 space-y-4 custom-scrollbar">
                             {radarHoy.length === 0 ? (
-                                <div className="text-center text-gray-400 text-sm py-10">No hay actividad programada para hoy.</div>
+                                <div className="text-center text-gray-400 text-sm py-10">No hay clases sincrónicas programadas para hoy.</div>
                             ) : (
-                                radarHoy.map((act, i) => (
-                                    <div
-                                        key={i}
-                                        onClick={() => onSelectDocente(act.idDocente)}
-                                        className="p-3 bg-orange-50/50 dark:bg-orange-900/10 border border-orange-100/50 dark:border-orange-900/30 rounded-xl cursor-pointer hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors"
-                                    >
-                                        <div className="font-bold text-gray-800 dark:text-gray-200 text-sm mb-1 leading-tight">{act.nombreDocente}</div>
-                                        <div className="text-xs text-orange-600 dark:text-orange-400 font-bold mb-2">Semana {act.numSemana} • {act.cursoMateria}</div>
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-xs text-gray-500 font-bold flex items-center gap-1">⏰ {act.hora}</span>
-                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-gray-400">
-                                                {act.tipo === 'INDEPENDIENTE' ? '🏠 INDEP' : '🏫 PRESENCIAL'}
-                                            </span>
+                                radarHoy.map((act, i) => {
+                                    // Determinar colores basados en el estado (gris=pasado, verde=presente, azul=futuro)
+                                    let borderColor = 'border-blue-100/50 dark:border-blue-900/30';
+                                    let bgColor = 'bg-blue-50/50 dark:bg-blue-900/10 hover:bg-blue-50 dark:hover:bg-blue-900/20';
+                                    let indicatorColor = 'bg-blue-500';
+                                    let statusText = 'Pendiente';
+
+                                    if (act.status === 'past') {
+                                        borderColor = 'border-gray-200 dark:border-slate-600';
+                                        bgColor = 'bg-gray-50 dark:bg-slate-700/30 grayscale hover:grayscale-0';
+                                        indicatorColor = 'bg-gray-400';
+                                        statusText = 'Terminada';
+                                    } else if (act.status === 'present') {
+                                        borderColor = 'border-green-200 dark:border-green-800/50';
+                                        bgColor = 'bg-green-50/50 dark:bg-green-900/10 hover:bg-green-50 dark:hover:bg-green-900/20';
+                                        indicatorColor = 'bg-[#25D366] animate-pulse';
+                                        statusText = 'En Curso';
+                                    }
+
+                                    return (
+                                        <div
+                                            key={i}
+                                            className={`p-4 border rounded-xl transition-all relative overflow-hidden group ${bgColor} ${borderColor}`}
+                                        >
+                                            {/* Indicador de estado lateral */}
+                                            <div className={`absolute left-0 top-0 bottom-0 w-1 ${indicatorColor}`} />
+
+                                            <div className="flex justify-between items-start mb-2 pl-2">
+                                                <div
+                                                    className="font-bold text-gray-800 dark:text-gray-200 text-sm leading-tight cursor-pointer hover:text-[#003366] dark:hover:text-blue-400 transition-colors"
+                                                    onClick={() => onSelectDocente(act.idDocente)}
+                                                    title="Ver perfil completo"
+                                                >
+                                                    {act.nombreDocente}
+                                                </div>
+                                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase ml-2 flex-shrink-0 ${act.status === 'past' ? 'bg-gray-200 text-gray-600' :
+                                                        act.status === 'present' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                                                    }`}>
+                                                    {statusText}
+                                                </span>
+                                            </div>
+
+                                            <div className="text-xs text-gray-600 dark:text-gray-400 font-bold mb-3 pl-2 opacity-80">Semana {act.numSemana} • {act.cursoMateria}</div>
+
+                                            <div className="flex justify-between items-center pl-2">
+                                                <span className="text-xs text-gray-500 font-bold flex items-center gap-1">⏰ {act.hora}</span>
+                                                <a href={act.zoomLink} target="_blank" rel="noreferrer"
+                                                    onClick={(e) => { e.stopPropagation(); registrarLog('admin', `Unido a clase de ${act.nombreDocente} (Sem ${act.numSemana})`); }}
+                                                    className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-colors cursor-pointer no-underline ${act.status === 'past' ? 'bg-gray-400 hover:bg-gray-500' :
+                                                            act.status === 'present' ? 'bg-[#25D366] hover:bg-green-600 shadow-[0_2px_10px_rgba(37,211,102,0.2)]' :
+                                                                'bg-[#2D8CFF] hover:bg-blue-600'
+                                                        }`}
+                                                >
+                                                    🎥 Entrar
+                                                </a>
+                                            </div>
                                         </div>
-                                    </div>
-                                ))
+                                    )
+                                })
                             )}
                         </div>
                     </div>
