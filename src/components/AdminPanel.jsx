@@ -220,11 +220,31 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                 });
             });
         });
-
         const activos = Array.from(activosMap.values());
 
-        // Ordenamos cronológicamente (ascending)
-        activos.sort((a, b) => a.exactTime - b.exactTime);
+        // Ordenamos con sistema de prioridades:
+        // 1. En Curso (present) -> Arriba
+        // 2. Próximas (future) -> Medio
+        // 3. Terminadas (past) -> Abajo (Al final de la lista)
+        // Dentro del mismo grupo de prioridad, ordenamos cronológicamente.
+
+        const statusWeight = {
+            'present': 0,
+            'future': 1,
+            'past': 2
+        };
+
+        activos.sort((a, b) => {
+            const weightA = statusWeight[a.status];
+            const weightB = statusWeight[b.status];
+
+            if (weightA !== weightB) {
+                return weightA - weightB; // Ordena por grupo (0, 1, 2)
+            }
+
+            // Si están en el mismo grupo de estado, ordena por hora real ascendente
+            return a.exactTime - b.exactTime;
+        });
 
         setRadarHoy(activos);
     }, [docentesListFull]);
