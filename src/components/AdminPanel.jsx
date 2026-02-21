@@ -172,7 +172,7 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        const activos = [];
+        const activosMap = new Map(); // Use map for deduplication
 
         docentesListFull.forEach(docente => {
             if (!docente.cursos || docente.cursos.length === 0) return;
@@ -188,23 +188,40 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                     if (semana.fechaObj && semana.tipo !== 'INDEPENDIENTE' && semana.zoomLink) {
                         const eventDate = new Date(semana.fechaObj);
                         eventDate.setHours(0, 0, 0, 0);
+
                         if (eventDate.getTime() === today.getTime()) {
-                            activos.push({
-                                idDocente: docente.idReal,
-                                nombreDocente: docente.nombre,
-                                cursoMateria: curso.materia,
-                                tipo: semana.tipo,
-                                hora: semana.hora,
-                                numSemana: semana.num,
-                                status: semana.status, // past, present, future (calculado por procesarCursos)
-                                zoomLink: semana.zoomLink,
-                                exactTime: semana.fechaObj.getTime()
-                            });
+
+                            // Clave única para deduplicar: ID Docente + Hora Exacta + Rango de horas texto
+                            const uniqueKey = `${docente.idReal}_${semana.fechaObj.getTime()}_${semana.hora}`;
+
+                            if (activosMap.has(uniqueKey)) {
+                                // Ya existe una clase de este profe a esta hora. Combinar nombres de materia.
+                                const existing = activosMap.get(uniqueKey);
+                                // Evitar duplicar nombres si la materia se llama igual en varios grupos
+                                if (!existing.cursoMateria.includes(curso.materia)) {
+                                    existing.cursoMateria += ` / ${curso.materia}`;
+                                }
+                            } else {
+                                // Nueva entrada
+                                activosMap.set(uniqueKey, {
+                                    idDocente: docente.idReal,
+                                    nombreDocente: docente.nombre,
+                                    cursoMateria: curso.materia,
+                                    tipo: semana.tipo,
+                                    hora: semana.hora,
+                                    numSemana: semana.num,
+                                    status: semana.status, // past, present, future (calculado por procesarCursos)
+                                    zoomLink: semana.zoomLink,
+                                    exactTime: semana.fechaObj.getTime()
+                                });
+                            }
                         }
                     }
                 });
             });
         });
+
+        const activos = Array.from(activosMap.values());
 
         // Ordenamos cronológicamente (ascending)
         activos.sort((a, b) => a.exactTime - b.exactTime);
@@ -409,7 +426,7 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                                                     {act.nombreDocente}
                                                 </div>
                                                 <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase ml-2 flex-shrink-0 ${act.status === 'past' ? 'bg-gray-200 text-gray-600' :
-                                                        act.status === 'present' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                                                    act.status === 'present' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
                                                     }`}>
                                                     {statusText}
                                                 </span>
@@ -422,8 +439,8 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                                                 <a href={act.zoomLink} target="_blank" rel="noreferrer"
                                                     onClick={(e) => { e.stopPropagation(); registrarLog('admin', `Unido a clase de ${act.nombreDocente} (Sem ${act.numSemana})`); }}
                                                     className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-colors cursor-pointer no-underline ${act.status === 'past' ? 'bg-gray-400 hover:bg-gray-500' :
-                                                            act.status === 'present' ? 'bg-[#25D366] hover:bg-green-600 shadow-[0_2px_10px_rgba(37,211,102,0.2)]' :
-                                                                'bg-[#2D8CFF] hover:bg-blue-600'
+                                                        act.status === 'present' ? 'bg-[#25D366] hover:bg-green-600 shadow-[0_2px_10px_rgba(37,211,102,0.2)]' :
+                                                            'bg-[#2D8CFF] hover:bg-blue-600'
                                                         }`}
                                                 >
                                                     🎥 Entrar
