@@ -3,7 +3,7 @@ import * as XLSX from 'xlsx';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { URL_TU_EXCEL_MAESTRO, URL_FIREBASE_CONSOLE } from '../utils/helpers';
 
-const FIREBASE_DB_URL = "https://portal-creo-db-default-rtdb.firebaseio.com/docentes.json";
+const FIREBASE_DB_URL = `${import.meta.env.VITE_FIREBASE_DB_BASE_URL}/docentes.json`;
 
 const MOCK_ANALYTICS = {
     daily: [
@@ -93,7 +93,7 @@ const AdminPanel = ({ onBack, adminSearch, setAdminSearch, adminResult, onAdminD
                 setUploadResult(`🚀 Subiendo ${countDocentes} docentes y ${countCursos} cursos a Firebase...`);
 
                 // Sincronizar directo a Firebase con autenticación secreta
-                const secretAuth = "eiRj3OTUFn7PSL1bxgB1c62hCQ6nGveQOUvxeo7m";
+                const secretAuth = import.meta.env.VITE_FIREBASE_SECRET;
                 const res = await fetch(`${FIREBASE_DB_URL}?auth=${secretAuth}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
@@ -116,73 +116,88 @@ const AdminPanel = ({ onBack, adminSearch, setAdminSearch, adminResult, onAdminD
     };
 
     return (
-        <div style={{ fontFamily: 'Segoe UI', background: '#f4f6f8', minHeight: '100vh', padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <div className="fade-in-up" style={{ maxWidth: '1000px', width: '100%', background: 'white', padding: '40px', borderRadius: '30px', boxShadow: '0 20px 50px rgba(0,0,0,0.1)' }}>
+        <div className="min-h-screen bg-[#f4f6f8] dark:bg-slate-900 p-5 flex flex-col items-center font-sans transition-colors duration-300">
+            <div className="fade-in-up w-full max-w-5xl bg-white dark:bg-slate-800 p-10 rounded-[30px] shadow-[0_20px_50px_rgba(0,0,0,0.1)] dark:shadow-none transition-colors duration-300">
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', borderBottom: '1px solid #eee', paddingBottom: '20px' }}>
+                <div className="flex justify-between items-center mb-8 border-b border-gray-200 dark:border-slate-700 pb-5">
                     <div>
-                        <h2 style={{ color: '#003366', margin: 0 }}>PANEL INTELIGENTE</h2>
-                        <p style={{ color: '#666', margin: '5px 0 0' }}>Sincronización de Base de Datos</p>
+                        <h2 className="text-[#003366] dark:text-blue-400 m-0 text-2xl font-bold">PANEL INTELIGENTE</h2>
+                        <p className="text-gray-500 dark:text-gray-400 mt-1 mb-0">Sincronización de Base de Datos</p>
                     </div>
-                    <button onClick={onBack} style={{ cursor: 'pointer', padding: '10px 25px', borderRadius: '30px', border: 'none', background: '#f0f0f0', fontWeight: 'bold', color: '#333' }}>⬅ Volver</button>
+                    <button onClick={onBack} className="cursor-pointer px-6 py-2.5 rounded-full border-none bg-gray-100 dark:bg-slate-700 font-bold text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors">⬅ Volver</button>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '30px' }}>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
 
                     {/* NUEVO: Subida de Excel Mágico */}
-                    <div style={{ background: '#f5f9ff', padding: '25px', borderRadius: '20px', border: '2px dashed #007bff', textAlign: 'center' }}>
-                        <h3 style={{ margin: '0 0 10px', color: '#1e40af' }}>📥 Actualizar BD (Desde Excel)</h3>
-                        <p style={{ fontSize: '0.85rem', color: '#555', marginBottom: '20px' }}>Sube el archivo Excel actualizado. El sistema lo analizará y sincronizará en tiempo real con Firebase.</p>
+                    <div className="bg-[#f5f9ff] dark:bg-blue-900/20 p-6 rounded-2xl border-2 border-dashed border-[#007bff] text-center flex flex-col justify-center transition-colors">
+                        <h3 className="m-0 mb-3 text-[#1e40af] dark:text-blue-300 text-xl font-bold">📥 Actualizar BD (Desde Excel)</h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">Sube el archivo Excel actualizado. El sistema lo analizará y sincronizará en tiempo real con Firebase.</p>
 
                         <input
                             type="file"
                             accept=".xlsx, .xls"
                             onChange={handleFileUpload}
                             disabled={uploading}
-                            style={{ display: 'block', margin: '0 auto', marginBottom: '15px' }}
+                            className="block mx-auto mb-4 text-sm text-gray-500 dark:text-gray-400
+                                file:mr-4 file:py-2 file:px-4
+                                file:rounded-full file:border-0
+                                file:text-sm file:font-semibold
+                                file:bg-blue-50 file:text-blue-700
+                                hover:file:bg-blue-100 transition-colors cursor-pointer disabled:cursor-not-allowed dark:file:bg-blue-900/50 dark:file:text-blue-300"
                         />
 
+                        {uploading && (
+                            <div className="flex justify-center items-center gap-2 mb-4 text-[#007bff] dark:text-blue-400 font-bold text-sm">
+                                <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Analizando y Sincronizando...
+                            </div>
+                        )}
+
                         {uploadResult && (
-                            <pre style={{ background: 'white', padding: '15px', borderRadius: '10px', border: '1px solid #ddd', fontSize: '0.85rem', textAlign: 'left', whiteSpace: 'pre-wrap', color: '#333' }}>
+                            <pre className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700 text-sm text-left whitespace-pre-wrap text-gray-800 dark:text-gray-300 mt-2 transition-colors">
                                 {uploadResult}
                             </pre>
                         )}
                     </div>
 
                     {/* Chart 1: Daily Hits */}
-                    <div style={{ background: '#fff', padding: '20px', borderRadius: '20px', border: '1px solid #eee', height: '300px' }}>
-                        <h4 style={{ margin: '0 0 20px', color: '#003366' }}>📊 Consultas por Día</h4>
+                    <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-gray-100 dark:border-slate-700 h-[300px] transition-colors">
+                        <h4 className="m-0 mb-5 text-[#003366] dark:text-blue-400 font-bold text-lg">📊 Consultas por Día</h4>
                         <ResponsiveContainer width="100%" height="85%">
                             <BarChart data={MOCK_ANALYTICS.daily}>
-                                <XAxis dataKey="name" fontSize={12} />
-                                <YAxis fontSize={12} />
-                                <Tooltip />
-                                <Bar dataKey="consultas" fill="#003366" radius={[4, 4, 0, 0]} />
+                                <XAxis dataKey="name" fontSize={12} stroke="#888" />
+                                <YAxis fontSize={12} stroke="#888" />
+                                <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }} />
+                                <Bar dataKey="consultas" fill="#003366" radius={[4, 4, 0, 0]} className="dark:fill-blue-500" />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
 
                     {/* Existing Tools & Diagnostico */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                        <div style={{ background: '#f9f9f9', padding: '20px', borderRadius: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                            <h4 style={{ margin: 0 }}>Accesos Rápidos</h4>
-                            <a href="https://docs.google.com/spreadsheets/d/1fHgj_yep0s7955EeaRpFiJeBLJX_-PLtjOFxWepoprQ/edit" target="_blank" rel="noreferrer" style={{ display: 'block', padding: '15px', background: '#27ae60', color: 'white', textAlign: 'center', borderRadius: '10px', textDecoration: 'none', fontWeight: 'bold' }}>Excel Maestro</a>
-                            <a href="https://console.firebase.google.com/" target="_blank" rel="noreferrer" style={{ display: 'block', padding: '15px', background: '#f39c12', color: 'white', textAlign: 'center', borderRadius: '10px', textDecoration: 'none', fontWeight: 'bold' }}>Firebase Console</a>
+                    <div className="flex flex-col gap-5">
+                        <div className="bg-gray-50 dark:bg-slate-800/50 p-5 rounded-2xl flex flex-col gap-4 border border-transparent dark:border-slate-700 transition-colors">
+                            <h4 className="m-0 font-bold dark:text-gray-200 text-lg">Accesos Rápidos</h4>
+                            <a href={URL_TU_EXCEL_MAESTRO} target="_blank" rel="noreferrer" className="block p-4 bg-[#27ae60] text-white text-center rounded-xl no-underline font-bold hover:bg-[#219653] transition-colors shadow-sm">Excel Maestro</a>
+                            <a href={URL_FIREBASE_CONSOLE} target="_blank" rel="noreferrer" className="block p-4 bg-[#f39c12] text-white text-center rounded-xl no-underline font-bold hover:bg-[#d68910] transition-colors shadow-sm">Firebase Console</a>
                         </div>
 
                         {/* Diagnostic Tool */}
-                        <div style={{ padding: '20px', background: '#f0f2f5', borderRadius: '20px' }}>
-                            <h4 style={{ margin: '0 0 10px' }}>🕵️ Diagnóstico</h4>
-                            <form onSubmit={onAdminDiagnostico} style={{ display: 'flex', gap: '10px' }}>
+                        <div className="p-5 bg-gray-100 dark:bg-slate-800/80 rounded-2xl border border-transparent dark:border-slate-700 transition-colors">
+                            <h4 className="m-0 mb-4 font-bold dark:text-gray-200 text-lg">🕵️ Diagnóstico</h4>
+                            <form onSubmit={onAdminDiagnostico} className="flex gap-2">
                                 <input
                                     placeholder="Cédula..."
                                     value={adminSearch}
                                     onChange={e => setAdminSearch(e.target.value)}
-                                    style={{ flex: 1, padding: '10px', borderRadius: '10px', border: '1px solid #ccc' }}
+                                    className="flex-1 p-3 rounded-xl border border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003366] dark:focus:ring-blue-500 transition-all font-medium"
                                 />
-                                <button style={{ padding: '10px', background: '#333', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' }}>Ver</button>
+                                <button className="px-5 py-3 bg-gray-800 text-white border-none rounded-xl font-bold cursor-pointer hover:bg-black dark:bg-blue-600 dark:hover:bg-blue-700 transition-colors shadow-sm">Ver</button>
                             </form>
-                            {adminResult && <div style={{ marginTop: '10px', fontSize: '0.8rem', whiteSpace: 'pre-wrap' }}>{adminResult}</div>}
+                            {adminResult && <div className="mt-4 text-sm whitespace-pre-wrap text-gray-700 dark:text-gray-300 bg-white dark:bg-slate-900 p-3 rounded-lg border border-gray-200 dark:border-slate-700">{adminResult}</div>}
                         </div>
                     </div>
                 </div>

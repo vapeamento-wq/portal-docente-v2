@@ -17,8 +17,17 @@ const Header = ({ onReset, docente, searchTerm, setSearchTerm, onSearch, loading
                 onChange={e => setSearchTerm(e.target.value)}
                 className="p-3 px-5 rounded-full border-none outline-none text-base w-full md:w-[200px] bg-transparent dark:text-white placeholder:text-gray-400"
               />
-              <button className="bg-[#db9b32] text-[#003366] border-none py-2 px-6 font-extrabold rounded-full uppercase tracking-wider cursor-pointer hover:bg-[#c68a2e] transition-colors whitespace-nowrap">
-                {loading ? '...' : 'CONSULTAR'}
+              <button
+                type="submit"
+                disabled={loading}
+                className="bg-[#db9b32] text-[#003366] border-none py-2 px-6 font-extrabold rounded-full uppercase tracking-wider cursor-pointer hover:bg-[#c68a2e] transition-colors whitespace-nowrap min-w-[140px] flex justify-center items-center disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {loading ? (
+                  <svg className="animate-spin h-5 w-5 text-[#003366]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                ) : 'CONSULTAR'}
               </button>
             </form>
           )}

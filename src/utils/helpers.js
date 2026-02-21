@@ -1,6 +1,6 @@
-export const URL_SCRIPT_LOGS = "https://script.google.com/macros/s/AKfycbzME0D_wVP6l4AxLsZMFT4gIDJoD5LAlUhrQ1OL3Al1tAUZZvmiiF1VOlYmiUqY_DeL/exec";
-export const URL_TU_EXCEL_MAESTRO = "https://docs.google.com/spreadsheets/d/1fHgj_yep0s7955EeaRpFiJeBLJX_-PLtjOFxWepoprQ/edit";
-export const URL_FIREBASE_CONSOLE = "https://console.firebase.google.com/";
+export const URL_SCRIPT_LOGS = import.meta.env.VITE_SCRIPT_LOGS_URL;
+export const URL_TU_EXCEL_MAESTRO = import.meta.env.VITE_EXCEL_MAESTRO_URL;
+export const URL_FIREBASE_CONSOLE = import.meta.env.VITE_FIREBASE_CONSOLE_URL;
 
 export const registrarLog = (documento, accion) => {
   try {

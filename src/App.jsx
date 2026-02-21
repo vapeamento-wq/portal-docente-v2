@@ -10,9 +10,9 @@ import AdminPanel from './components/AdminPanel';
 import { registrarLog, procesarCursos, formatoFechaHora, URL_SCRIPT_LOGS } from './utils/helpers';
 
 // --- ⚡ CONFIGURACIÓN MAESTRA (V21.0 - CON LOGS DE ERROR) ---
-const FIREBASE_DB_URL = "https://portal-creo-db-default-rtdb.firebaseio.com/docentes/";
-const WHATSAPP_NUMBER = "573106964025";
-const ADMIN_PASS = "admincreo";
+const FIREBASE_DB_URL = `${import.meta.env.VITE_FIREBASE_DB_BASE_URL}/docentes/`;
+const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER;
+const ADMIN_PASS = import.meta.env.VITE_ADMIN_PASS;
 
 // Fetcher function for SWR
 const fetcher = (...args) => fetch(...args).then(res => res.json());
