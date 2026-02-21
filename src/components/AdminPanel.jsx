@@ -7,7 +7,7 @@ const FIREBASE_DB_URL = `${import.meta.env.VITE_FIREBASE_DB_BASE_URL}/docentes.j
 
 // MOCK_ANALYTICS has been removed in favor of real Firebase data
 
-const AdminPanel = ({ onBack, adminSearch, setAdminSearch, adminResult, onAdminDiagnostico }) => {
+const AdminPanel = ({ onBack, onSelectDocente }) => {
     const [uploading, setUploading] = useState(false);
     const [uploadResult, setUploadResult] = useState(null);
     const [docentesList, setDocentesList] = useState([]);
@@ -216,27 +216,12 @@ const AdminPanel = ({ onBack, adminSearch, setAdminSearch, adminResult, onAdminD
                         </ResponsiveContainer>
                     </div>
 
-                    {/* Existing Tools & Diagnostico */}
+                    {/* Existing Tools (Excel, Firebase) */}
                     <div className="flex flex-col gap-5">
-                        <div className="bg-gray-50 dark:bg-slate-800/50 p-5 rounded-2xl flex flex-col gap-4 border border-transparent dark:border-slate-700 transition-colors">
+                        <div className="bg-gray-50 dark:bg-slate-800/50 p-5 rounded-2xl flex flex-col gap-4 border border-transparent dark:border-slate-700 transition-colors h-full justify-center">
                             <h4 className="m-0 font-bold dark:text-gray-200 text-lg">Accesos Rápidos</h4>
                             <a href={URL_TU_EXCEL_MAESTRO} target="_blank" rel="noreferrer" className="block p-4 bg-[#27ae60] text-white text-center rounded-xl no-underline font-bold hover:bg-[#219653] transition-colors shadow-sm">Excel Maestro</a>
                             <a href={URL_FIREBASE_CONSOLE} target="_blank" rel="noreferrer" className="block p-4 bg-[#f39c12] text-white text-center rounded-xl no-underline font-bold hover:bg-[#d68910] transition-colors shadow-sm">Firebase Console</a>
-                        </div>
-
-                        {/* Diagnostic Tool */}
-                        <div className="p-5 bg-gray-100 dark:bg-slate-800/80 rounded-2xl border border-transparent dark:border-slate-700 transition-colors">
-                            <h4 className="m-0 mb-4 font-bold dark:text-gray-200 text-lg">🕵️ Diagnóstico</h4>
-                            <form onSubmit={onAdminDiagnostico} className="flex gap-2">
-                                <input
-                                    placeholder="Cédula..."
-                                    value={adminSearch}
-                                    onChange={e => setAdminSearch(e.target.value)}
-                                    className="flex-1 p-3 rounded-xl border border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003366] dark:focus:ring-blue-500 transition-all font-medium"
-                                />
-                                <button className="px-5 py-3 bg-gray-800 text-white border-none rounded-xl font-bold cursor-pointer hover:bg-black dark:bg-blue-600 dark:hover:bg-blue-700 transition-colors shadow-sm">Ver</button>
-                            </form>
-                            {adminResult && <div className="mt-4 text-sm whitespace-pre-wrap text-gray-700 dark:text-gray-300 bg-white dark:bg-slate-900 p-3 rounded-lg border border-gray-200 dark:border-slate-700">{adminResult}</div>}
                         </div>
                     </div>
                 </div>
@@ -286,8 +271,12 @@ const AdminPanel = ({ onBack, adminSearch, setAdminSearch, adminResult, onAdminD
                                         )
                                         .slice(0, 15) // Limit to top 15 matches for quick UI
                                         .map(d => (
-                                            <tr key={d.id} className="border-b border-gray-50 dark:border-slate-700/50 hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors">
-                                                <td className="p-3 font-semibold text-gray-800 dark:text-gray-200">{d.nombre}</td>
+                                            <tr
+                                                key={d.id}
+                                                onClick={() => onSelectDocente(d.id)}
+                                                className="border-b border-gray-50 dark:border-slate-700/50 hover:bg-gray-100 dark:hover:bg-slate-700/60 transition-colors cursor-pointer group"
+                                            >
+                                                <td className="p-3 font-semibold text-gray-800 dark:text-gray-200 group-hover:text-[#003366] dark:group-hover:text-blue-400 transition-colors">{d.nombre}</td>
                                                 <td className="p-3 text-gray-600 dark:text-gray-400 font-mono text-sm">{d.id}</td>
                                                 <td className="p-3 text-gray-600 dark:text-gray-400"><span className="bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300 font-bold px-2 py-1 rounded text-xs">{d.cursosCount}</span></td>
                                             </tr>

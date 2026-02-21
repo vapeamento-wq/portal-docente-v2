@@ -28,10 +28,6 @@ const App = () => {
   const [docente, setDocente] = useState(null);
   const [selectedCursoIdx, setSelectedCursoIdx] = useState(0);
 
-  // Estados Admin (Diagnóstico)
-  const [adminSearch, setAdminSearch] = useState('');
-  const [adminResult, setAdminResult] = useState(null);
-
   const [fechaActual, setFechaActual] = useState(new Date());
   const [toast, setToast] = useState({ show: false, msg: '' });
 
@@ -87,7 +83,6 @@ const App = () => {
     }
   }, []);
 
-  // --- BÚSQUEDA PRINCIPAL ---
   const handleSearch = (e) => {
     e.preventDefault();
     const idBusqueda = searchTerm.replace(/\D/g, '');
@@ -98,21 +93,12 @@ const App = () => {
     setSearchId(idBusqueda); // Trigger SWR
   };
 
-  const handleAdminDiagnostico = async (e) => {
-    e.preventDefault();
-    if (!adminSearch) return;
-    setAdminResult('🔍 Verificando en Firebase...');
-    try {
-      const res = await fetch(`${FIREBASE_DB_URL}${adminSearch}.json`);
-      const data = await res.json();
-      if (data) {
-        setAdminResult(`✅ ENCONTRADO: ${data.nombre} | ${data.cursos?.length || 0} Cursos`);
-      } else {
-        setAdminResult('❌ NO ENCONTRADO: El ID no existe en la BD.');
-      }
-    } catch {
-      setAdminResult('⚠️ ERROR DE RED: Revisa tu conexión.');
-    }
+  const handleAdminSelectDocente = (idDocente) => {
+    localStorage.setItem('portal_docente_id', idDocente);
+    setSearchTerm(idDocente);
+    setDocente(null);
+    setSearchId(idDocente);
+    setView('user');
   };
 
   const handleReset = () => {
@@ -136,10 +122,7 @@ const App = () => {
     return (
       <AdminPanel
         onBack={() => setView('user')}
-        adminSearch={adminSearch}
-        setAdminSearch={setAdminSearch}
-        adminResult={adminResult}
-        onAdminDiagnostico={handleAdminDiagnostico}
+        onSelectDocente={handleAdminSelectDocente}
       />
     );
   }
