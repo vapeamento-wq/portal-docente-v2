@@ -89,12 +89,13 @@ const parseCourseDate = (fechaStr, horaStr) => {
     // Hora: "11 a 13" o "7 A 9" -> Take start hour "11" o "7"
     let hour = 9; // Default
     if (horaStr) {
-      const horaLimpia = horaStr.toLowerCase();
-      if (horaLimpia.includes('a')) {
-        const horaParts = horaLimpia.split('a');
-        hour = parseInt(horaParts[0].trim());
+      const horaLimpia = horaStr.toLowerCase().trim();
+      // Only parse as 'a' range if it actually matches "number a number" or similar
+      const matchA = horaLimpia.match(/^(\d+)\s*a\s*(\d+)$/);
+      if (matchA) {
+        hour = parseInt(matchA[1], 10);
       } else {
-        const num = parseInt(horaLimpia.trim());
+        const num = parseInt(horaLimpia);
         if (!isNaN(num)) hour = num;
       }
     }
@@ -145,37 +146,16 @@ export const procesarCursos = (cursos) => {
 
       // --- 3. Determine Status (Past/Present/Future) ---
       let status = 'future';
-      if (fechaObj) {
-        const getWeek = (d) => {
-          const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-          date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay() || 7));
-          const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
-          return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
-        };
+      if (fechaObj && !isNaN(fechaObj.getTime())) {
+        const todayDate = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+        const eventDateObj = new Date(fechaObj.getFullYear(), fechaObj.getMonth(), fechaObj.getDate());
 
-        const currentWeek = getWeek(hoy);
-        const courseWeek = getWeek(fechaObj);
-
-        // Year check is also important
-        const currentYear = hoy.getFullYear();
-        const courseYear = fechaObj.getFullYear();
-
-        if (isNaN(courseWeek)) {
+        if (eventDateObj < todayDate) {
           status = 'past';
-        } else if (courseYear < currentYear) {
-          status = 'past';
-        } else if (courseYear > currentYear) {
-          status = 'future';
+        } else if (eventDateObj.getTime() === todayDate.getTime()) {
+          status = 'present';
         } else {
-          // Same year, check weeks
-          if (courseWeek < currentWeek) {
-            status = 'past';
-          } else if (courseWeek > currentWeek) {
-            status = 'future';
-          } else {
-            // El usuario solicitó que "la semana que estamos corriendo" se vea verde (present) en su totalidad.
-            status = 'present';
-          }
+          status = 'future';
         }
 
         lastValidStatus = status; // Update fallback for next iterations
