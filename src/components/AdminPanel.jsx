@@ -86,17 +86,73 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                 const worksheet = workbook.Sheets[sheetName];
                 const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: false, dateNF: 'dd/mm/yyyy' });
 
+                // Detectamos la fila de los headers buscando palabras clave
+                let headerRowIdx = -1;
+                for (let i = 0; i < Math.min(20, rows.length); i++) {
+                    const rowStr = (rows[i] || []).join(' ').toUpperCase();
+                    if (rowStr.includes('DOCENTE') || rowStr.includes('CÉDULA') || rowStr.includes('CEDULA')) {
+                        headerRowIdx = i;
+                        break;
+                    }
+                }
+
+                if (headerRowIdx === -1) {
+                    setUploading(false);
+                    setUploadResult('⚠️ Error: No se pudo detectar la fila de títulos en el Excel. Asegúrese de que existan columnas como "NOMBRE DOCENTE" o "CÉDULA".');
+                    return;
+                }
+
+                const headers = rows[headerRowIdx] || [];
+                const colMap = {};
+
+                // Mapeo dinámico: guardamos { "CÉDULA": 7, "NOMBRE DOCENTE": 6, "ASIGNATURA": 9, "SEMANA 1": 50, etc. }
+                headers.forEach((h, idx) => {
+                    if (h === undefined || h === null) return;
+                    const cleanH = String(h).trim().toUpperCase();
+                    colMap[cleanH] = idx;
+                });
+
+                // Helper para encontrar columnas aproximadas (por si le cambiaron un espacio o tilde)
+                const findCol = (keywords) => {
+                    for (const [header, idx] of Object.entries(colMap)) {
+                        if (keywords.some(k => header.includes(k))) return idx;
+                    }
+                    return -1; // No encontrada
+                };
+
+                // Identificamos las columnas críticas dinámicamente
+                const idxNombre = findCol(['NOMBRE DOCENTE', 'PROFESOR', 'DOCENTE']);
+                const idxCedula = findCol(['CÉDULA', 'CEDULA', 'DOCUMENTO', 'ID']);
+                const idxMateria = findCol(['ASIGNATURA', 'MATERIA', 'CURSO']);
+                const idxGrupo = findCol(['GRUPO']);
+                const idxBloque = findCol(['BLOQUE']);
+                const idxFInicio = findCol(['FECHA I', 'INICIAL', 'F. INICIO', 'FINICIO']);
+                const idxFFin = findCol(['FECHA F', 'FINAL', 'F. FIN', 'FFIN']);
+
+                // Identificamos las columnas de SEMANA 1 a 16 dinámicamente
+                const semanasColIndexes = [];
+                for (let s = 1; s <= 16; s++) {
+                    const idxSemana = findCol([`SEMANA ${s}`, `SEM ${s}`, `S${s}`]);
+                    semanasColIndexes.push(idxSemana);
+                }
+
+                if (idxNombre === -1 || idxCedula === -1) {
+                    setUploading(false);
+                    setUploadResult('⚠️ Error: No se encontraron las columnas de Nombre o Cédula en el Excel (tituladas "NOMBRE DOCENTE" y "CÉDULA").');
+                    return;
+                }
+
                 let docentesDB = {};
                 let countCursos = 0;
 
-                // Empezar a leer desde la fila 1 (saltando el header en fila 0)
-                for (let i = 1; i < rows.length; i++) {
+                // Empezar a leer desde la fila siguiente al header
+                for (let i = headerRowIdx + 1; i < rows.length; i++) {
                     const row = rows[i];
                     if (!row || row.length === 0) continue;
 
-                    const nombreProfesor = row[6];
-                    let documento = row[7];
-                    const asignatura = row[9];
+                    const nombreProfesor = row[idxNombre];
+                    let documento = row[idxCedula];
+                    const asignatura = idxMateria !== -1 ? row[idxMateria] : 'Sin Asignatura';
 
                     if (!documento || !nombreProfesor || !asignatura) continue;
 
@@ -107,16 +163,21 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                     // Extraer los datos del curso
                     const curso = {
                         materia: asignatura,
-                        grupo: row[11] || '',
-                        bloque: row[14] || '',
-                        fInicio: row[48] || '', // FECHA INICIAL
-                        fFin: row[49] || '',    // FECHA FINAL
+                        grupo: idxGrupo !== -1 ? (row[idxGrupo] || '') : '',
+                        bloque: idxBloque !== -1 ? (row[idxBloque] || '') : '',
+                        fInicio: idxFInicio !== -1 ? (row[idxFInicio] || '') : '',
+                        fFin: idxFFin !== -1 ? (row[idxFFin] || '') : '',
                         semanasRaw: []
                     };
 
-                    // Extraer las 16 semanas (Columnas 50 a 65 en el nuevo Excel)
-                    for (let s = 50; s <= 65; s++) {
-                        curso.semanasRaw.push(row[s] || '-');
+                    // Extraer las 16 semanas dinámicas
+                    for (let s = 0; s < 16; s++) {
+                        const colIdx = semanasColIndexes[s];
+                        if (colIdx !== -1 && row[colIdx]) {
+                            curso.semanasRaw.push(row[colIdx]);
+                        } else {
+                            curso.semanasRaw.push('-');
+                        }
                     }
 
                     // Insertar en la base de datos
