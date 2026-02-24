@@ -4,6 +4,34 @@ import { motion } from 'framer-motion';
 const HeroCard = ({ cursoActivo }) => {
     if (!cursoActivo) return null;
 
+    const formatHeaderDate = (dateStr) => {
+        if (!dateStr) return '';
+        const parts = dateStr.toString().trim().split('/');
+        if (parts.length === 3) {
+            let p0 = parseInt(parts[0], 10);
+            let p1 = parseInt(parts[1], 10);
+            let yearNum = parts[2].trim();
+
+            let monthNum, dayNum;
+            if (p0 > 12) {
+                dayNum = p0;
+                monthNum = p1;
+            } else if (p1 > 12) {
+                monthNum = p0;
+                dayNum = p1;
+            } else {
+                monthNum = p0; // usually MM/DD/YY
+                dayNum = p1;
+            }
+
+            const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+            if (monthNum >= 1 && monthNum <= 12) {
+                return `${dayNum} / ${meses[monthNum - 1]} / ${yearNum}`;
+            }
+        }
+        return dateStr;
+    };
+
     return (
         <motion.div
             initial={{ opacity: 0, x: 20 }}
@@ -19,8 +47,8 @@ const HeroCard = ({ cursoActivo }) => {
 
             </div>
             <div className="flex gap-5 mt-6 flex-wrap bg-black/25 p-4 rounded-2xl backdrop-blur-sm">
-                <div className="flex items-center gap-2 font-medium text-[0.95rem]">📅 <strong>{cursoActivo.fInicio}</strong> (Inicio)</div>
-                <div className="flex items-center gap-2 font-medium text-[0.95rem]">🏁 <strong>{cursoActivo.fFin}</strong> (Fin)</div>
+                <div className="flex items-center gap-2 font-medium text-[0.95rem]">📅 <strong>{formatHeaderDate(cursoActivo.fInicio)}</strong> (Inicio)</div>
+                <div className="flex items-center gap-2 font-medium text-[0.95rem]">🏁 <strong>{formatHeaderDate(cursoActivo.fFin)}</strong> (Fin)</div>
             </div>
         </motion.div>
     );
