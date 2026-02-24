@@ -244,7 +244,7 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
 
                 // Sincronizar directo a Firebase con autenticación secreta
                 const secretAuth = import.meta.env.VITE_FIREBASE_SECRET;
-                const res = await fetch(`${FIREBASE_DB_URL}?auth = ${secretAuth} `, {
+                const res = await fetch(`${FIREBASE_DB_URL}?auth=${secretAuth}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(docentesDB)
@@ -464,11 +464,11 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                             <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Modo Mantenimiento:</span>
                             <button
                                 onClick={() => setMantenimientoActivo(!mantenimientoActivo)}
-                                className={`relative inline - flex h - 7 w - 14 items - center rounded - full transition - colors focus: outline - none ${mantenimientoActivo ? 'bg-red-500' : 'bg-gray-300 dark:bg-slate-600'} `}
+                                className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none ${mantenimientoActivo ? 'bg-red-500' : 'bg-gray-300 dark:bg-slate-600'}`}
                             >
-                                <span className={`inline - block h - 5 w - 5 transform rounded - full bg - white transition - transform ${mantenimientoActivo ? 'translate-x-8' : 'translate-x-1'} `} />
+                                <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${mantenimientoActivo ? 'translate-x-8' : 'translate-x-1'}`} />
                             </button>
-                            <span className={`text - xs font - bold px - 2 py - 1 rounded - md ${mantenimientoActivo ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'} `}>
+                            <span className={`text-xs font-bold px-2 py-1 rounded-md ${mantenimientoActivo ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'}`}>
                                 {mantenimientoActivo ? 'ACTIVADO' : 'Inactivo'}
                             </span>
                         </div>
