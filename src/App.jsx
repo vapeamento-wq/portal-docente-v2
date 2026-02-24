@@ -28,6 +28,7 @@ const App = () => {
   const [docente, setDocente] = useState(null);
   const [selectedCursoIdx, setSelectedCursoIdx] = useState(0);
   const [anuncio, setAnuncio] = useState(null);
+  const [searchAttempted, setSearchAttempted] = useState(false);
 
   const [fechaActual, setFechaActual] = useState(new Date());
   const [toast, setToast] = useState({ show: false, msg: '' });
@@ -56,14 +57,17 @@ const App = () => {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setDocente({ ...rawData, cursos: cursosProcesados });
       setSelectedCursoIdx(0);
+      setSearchAttempted(false); // Reset on success
       registrarLog(searchId, '✅ Consulta Exitosa (Cache/Red)');
     } else if (error) {
       showToast('⚠️ Error de Red');
+      setSearchAttempted(true); // Show error view
       registrarLog(searchId, '⚠️ Error Crítico de Red');
     } else if (rawData === null && searchId) {
       // SWR devolvió null (no encontrado en Firebase devuelve null body?)
       // Firebase RTDB devuelve null si clave no existe
       setDocente(null);
+      setSearchAttempted(true); // Show not found view
       showToast('❌ No encontrado');
       registrarLog(searchId, '❌ ID No Encontrado');
     }
@@ -140,6 +144,7 @@ const App = () => {
 
     localStorage.setItem('portal_docente_id', idBusqueda); // Guardar ID
     setDocente(null);
+    setSearchAttempted(false); // Reset while loading
     setSearchId(idBusqueda); // Trigger SWR
   };
 
@@ -147,6 +152,7 @@ const App = () => {
     localStorage.setItem('portal_docente_id', idDocente);
     setSearchTerm(idDocente);
     setDocente(null);
+    setSearchAttempted(false);
     setSearchId(idDocente);
     setView('user');
   };
@@ -159,6 +165,7 @@ const App = () => {
     setSearchTerm('');
     setSearchId(null);
     setSelectedCursoIdx(0);
+    setSearchAttempted(false);
 
     // Si el usuario es un administrador autenticado, devolverlo a su panel
     if (isAdminAuth) {
@@ -261,21 +268,58 @@ const App = () => {
       <main className="max-w-7xl mx-auto mt-10 px-5 grid grid-cols-1 md:grid-cols-[320px_1fr] gap-10 pb-24">
         <AnimatePresence mode="wait">
           {!docente ? (
-            <motion.div
-              key="welcome"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.4 }}
-              className="col-span-1 md:col-span-2 text-center py-24 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border border-white/20 dark:border-white/5 shadow-lg rounded-[20px] transition-colors duration-300 relative overflow-hidden"
-            >
-              <div className="text-8xl mb-5">👨‍🏫</div>
-              <h1 className="text-[#003366] dark:text-blue-400 mb-4 text-4xl font-bold">Portal Docente</h1>
-              <p className="text-gray-500 dark:text-gray-400 max-w-xl mx-auto text-lg leading-relaxed">Gestiona tu programación académica de forma privada y segura.</p>
+            searchAttempted ? (
+              <motion.div
+                key="not-found"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.4 }}
+                className="col-span-1 md:col-span-2 text-center py-16 px-6 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border border-red-100 dark:border-red-900/30 shadow-lg rounded-[20px] transition-colors duration-300"
+              >
+                <div className="w-24 h-24 bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 rounded-full flex items-center justify-center mx-auto mb-6 text-5xl border-[8px] border-white dark:border-slate-800 shadow-sm">
+                  🤔
+                </div>
+                <h2 className="text-2xl md:text-3xl font-bold text-[#1A1A1A] dark:text-white mb-4">
+                  Docente no encontrado
+                </h2>
+                <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto mb-8 text-base md:text-lg">
+                  No pudimos encontrar una programación académica asociada al número de documento <strong>{searchId}</strong> en nuestra base de datos.
+                </p>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                  <button
+                    onClick={handleReset}
+                    className="px-6 py-3 bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-200 font-bold rounded-xl transition-colors w-full sm:w-auto border-none cursor-pointer"
+                  >
+                    Intentar de nuevo
+                  </button>
+                  <a
+                    href={`https://wa.me/${WHATSAPP_NUMBER}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-6 py-3 bg-[#25D366] hover:bg-[#20bd59] text-white font-bold rounded-xl transition-colors w-full sm:w-auto border-none flex items-center justify-center gap-2 no-underline"
+                  >
+                    <span>💬</span> Reportar por WhatsApp
+                  </a>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="welcome"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.4 }}
+                className="col-span-1 md:col-span-2 text-center py-24 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border border-white/20 dark:border-white/5 shadow-lg rounded-[20px] transition-colors duration-300 relative overflow-hidden"
+              >
+                <div className="text-8xl mb-5">👨‍🏫</div>
+                <h1 className="text-[#003366] dark:text-blue-400 mb-4 text-4xl font-bold">Portal Docente</h1>
+                <p className="text-gray-500 dark:text-gray-400 max-w-xl mx-auto text-lg leading-relaxed">Gestiona tu programación académica de forma privada y segura.</p>
 
-              <div className="mt-10 text-xl text-gray-800 dark:text-gray-200 font-bold capitalize">{formatoFechaHora(fechaActual).fecha}</div>
-              <div className="absolute bottom-5 right-5 cursor-pointer opacity-20 text-xs hover:opacity-100 transition-opacity dark:text-gray-400" onClick={() => setView('login')}>🔒 Acceso Administrativo</div>
-            </motion.div>
+                <div className="mt-10 text-xl text-gray-800 dark:text-gray-200 font-bold capitalize">{formatoFechaHora(fechaActual).fecha}</div>
+                <div className="absolute bottom-5 right-5 cursor-pointer opacity-20 text-xs hover:opacity-100 transition-opacity dark:text-gray-400" onClick={() => setView('login')}>🔒 Acceso Administrativo</div>
+              </motion.div>
+            )
           ) : (
             <motion.div
               key="dashboard"
