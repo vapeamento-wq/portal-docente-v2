@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { registrarLog } from '../utils/helpers';
-
+import MonthlyCalendar from './MonthlyCalendar';
 const Timeline = ({ cursoActivo, docenteId }) => {
     const [viewMode, setViewMode] = useState('timeline');
 
@@ -18,7 +18,7 @@ const Timeline = ({ cursoActivo, docenteId }) => {
                 <h3 className="text-[#003366] dark:text-blue-400 m-0 text-xl font-bold transition-colors">Cronograma de Actividades</h3>
                 <div className="flex bg-gray-100 dark:bg-slate-700/50 p-1 rounded-lg">
                     <button onClick={() => setViewMode('timeline')} className={`px-4 py-1.5 rounded-md text-sm font-bold transition-all cursor-pointer border-none ${viewMode === 'timeline' ? 'bg-white shadow text-[#003366] dark:bg-slate-600 dark:text-blue-300' : 'bg-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Línea de Tiempo</button>
-                    <button onClick={() => setViewMode('calendar')} className={`px-4 py-1.5 rounded-md text-sm font-bold transition-all cursor-pointer border-none ${viewMode === 'calendar' ? 'bg-white shadow text-[#003366] dark:bg-slate-600 dark:text-blue-300' : 'bg-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Tarjetas</button>
+                    <button onClick={() => setViewMode('calendar')} className={`px-4 py-1.5 rounded-md text-sm font-bold transition-all cursor-pointer border-none ${viewMode === 'calendar' ? 'bg-white shadow text-[#003366] dark:bg-slate-600 dark:text-blue-300' : 'bg-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Mensual</button>
                 </div>
             </div>
 
@@ -42,8 +42,8 @@ const Timeline = ({ cursoActivo, docenteId }) => {
                             >
                                 {/* Line */}
                                 <div className={`absolute left-[23px] top-12 -bottom-8 w-[3px] transition-colors ${(cursoActivo.semanas[idx + 1] ? cursoActivo.semanas[idx + 1].status : s.status) === 'present' ? 'bg-[#25D366]' :
-                                        (cursoActivo.semanas[idx + 1] ? cursoActivo.semanas[idx + 1].status : s.status) === 'future' ? 'bg-[#003366] dark:bg-blue-500' :
-                                            'bg-gray-200 dark:bg-slate-700'
+                                    (cursoActivo.semanas[idx + 1] ? cursoActivo.semanas[idx + 1].status : s.status) === 'future' ? 'bg-[#003366] dark:bg-blue-500' :
+                                        'bg-gray-200 dark:bg-slate-700'
                                     }`}></div>
 
                                 {/* Date Circle */}
@@ -114,60 +114,9 @@ const Timeline = ({ cursoActivo, docenteId }) => {
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.98 }}
                         transition={{ duration: 0.3 }}
-                        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
+                        className="w-full"
                     >
-                        {cursoActivo.semanas.map((s, idx) => (
-                            <div key={idx} className={`p-5 rounded-2xl border transition-all duration-300 flex flex-col h-full overflow-hidden relative
-                                ${s.status === 'present' ? 'bg-white dark:bg-slate-800 border-[#25D366] shadow-[0_8px_20px_rgba(37,211,102,0.15)] ring-1 ring-[#25D366]' :
-                                    s.status === 'past' ? 'bg-gray-50/50 dark:bg-slate-800/50 border-transparent opacity-70 grayscale-[0.3]' :
-                                        'bg-gray-50 border-gray-100 dark:bg-slate-700/40 dark:border-slate-600 hover:bg-white dark:hover:bg-slate-700 hover:shadow-md hover:border-[#db9b32] dark:hover:border-yellow-500'
-                                }`}>
-
-                                <div className="flex justify-between items-center mb-4">
-                                    <div className={`text-xs font-bold px-2 py-1 flex items-center justify-center rounded-md ${s.status === 'present' ? 'bg-[#25D366] text-white' : 'bg-gray-200 text-gray-700 dark:bg-slate-600 dark:text-gray-300'}`}>Sem {s.num}</div>
-                                    <div className="font-bold text-sm text-gray-800 dark:text-gray-200">{s.fecha}</div>
-                                </div>
-
-                                <div className="flex-1 flex flex-col justify-center items-center text-center py-2">
-                                    {s.tipo === 'INDEPENDIENTE' ? (
-                                        <div className="bg-blue-50 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200 px-3 py-1.5 rounded-lg text-sm font-bold border border-blue-100 dark:border-blue-800/50 w-full mb-1">🏠 {s.displayTexto}</div>
-                                    ) : s.tipo === 'PRESENCIAL' ? (
-                                        <>
-                                            <div className="bg-blue-50 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200 px-3 py-1.5 rounded-lg text-sm font-bold border border-blue-100 dark:border-blue-800/50 w-full mb-1">🏫 {s.displayTexto}</div>
-                                            <div className="text-gray-500 dark:text-gray-400 text-sm font-bold mt-2">⏰ {s.hora}</div>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <div className="text-gray-500 dark:text-gray-400 text-sm font-bold mb-3">⏰ {s.hora}</div>
-                                            {s.zoomLink && (
-                                                <a href={s.zoomLink} target="_blank" rel="noreferrer"
-                                                    className="inline-flex items-center justify-center gap-2 bg-[#2D8CFF] text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-blue-600 transition-colors w-full decoration-0"
-                                                    onClick={() => registrarLog(docenteId, `🎥 Zoom Sem ${s.num}`)}>
-                                                    🎥 Unirse
-                                                </a>
-                                            )}
-                                        </>
-                                    )}
-                                </div>
-
-                                {(() => {
-                                    if (s.status === 'present' || s.status === 'future') {
-                                        const today = new Date();
-                                        const eventDate = s.fechaObj ? new Date(s.fechaObj) : null;
-                                        if (!eventDate) return null;
-                                        today.setHours(0, 0, 0, 0);
-                                        eventDate.setHours(0, 0, 0, 0);
-                                        const diffTime = eventDate - today;
-                                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-                                        if (diffDays === 0) return <div className="mt-3 text-center text-xs font-bold text-[#25D366]">HOY</div>;
-                                        if (diffDays === 1) return <div className="mt-3 text-center text-xs font-bold text-[#007bff] dark:text-blue-400">MAÑANA</div>;
-                                        if (diffDays > 1) return <div className="mt-3 text-center text-[0.7rem] font-bold text-gray-400 dark:text-gray-500">FALTAN {diffDays} DÍAS</div>;
-                                    }
-                                    return <div className="mt-3 text-center text-xs font-bold text-transparent select-none">-</div>;
-                                })()}
-                            </div>
-                        ))}
+                        <MonthlyCalendar cursoActivo={cursoActivo} docenteId={docenteId} />
                     </motion.div>
                 )}
             </AnimatePresence>
