@@ -41,8 +41,9 @@ const Timeline = ({ cursoActivo, docenteId }) => {
                                 className={`flex gap-6 mb-8 relative group ${s.status === 'past' ? 'opacity-60 grayscale-[0.5]' : ''}`}
                             >
                                 {/* Line */}
-                                <div className={`absolute left-[23px] top-12 -bottom-8 w-[3px] transition-colors ${s.status === 'present' ? 'bg-[#25D366]' :
-                                    s.status === 'future' ? 'bg-[#003366] dark:bg-blue-500' : 'bg-gray-200 dark:bg-slate-700'
+                                <div className={`absolute left-[23px] top-12 -bottom-8 w-[3px] transition-colors ${(cursoActivo.semanas[idx + 1] ? cursoActivo.semanas[idx + 1].status : s.status) === 'present' ? 'bg-[#25D366]' :
+                                        (cursoActivo.semanas[idx + 1] ? cursoActivo.semanas[idx + 1].status : s.status) === 'future' ? 'bg-[#003366] dark:bg-blue-500' :
+                                            'bg-gray-200 dark:bg-slate-700'
                                     }`}></div>
 
                                 {/* Date Circle */}
