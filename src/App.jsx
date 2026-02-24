@@ -145,9 +145,14 @@ const App = () => {
     setSelectedCursoIdx(0);
   };
 
+  const [isAdminAuth, setIsAdminAuth] = useState(false);
+
   const handleLogin = (e) => {
     e.preventDefault();
-    if (passInput === ADMIN_PASS) setView('admin');
+    if (passInput === ADMIN_PASS) {
+      setIsAdminAuth(true);
+      setView('admin');
+    }
     else alert("Contraseña incorrecta");
   };
 
@@ -166,7 +171,8 @@ const App = () => {
   // --- MANTENIMIENTO URGENTE ---
   const isMaintenance = true; // CAMBIAR A FALSE PARA REACTIVAR EL PORTAL
 
-  if (isMaintenance && view !== 'login') {
+  // Si está en mantenimiento, no es login, y no es un Admin autenticado, bloquea.
+  if (isMaintenance && view !== 'login' && !isAdminAuth) {
     return (
       <div className="min-h-screen bg-[#F0F2F5] dark:bg-slate-900 flex flex-col justify-center items-center text-center px-4 transition-colors duration-300">
         <div className="bg-white dark:bg-slate-800 p-10 rounded-3xl shadow-xl max-w-lg border border-gray-100 dark:border-slate-700">
