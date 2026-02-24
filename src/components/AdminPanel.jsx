@@ -128,34 +128,52 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                 const idxNombre = findCol(['NOMBRE DOCENTE', 'PROFESOR', 'DOCENTE']);
                 const idxCedula = findCol(['CÉDULA', 'CEDULA', 'DOCUMENTO', 'ID']);
                 const idxMateria = findCol(['ASIGNATURA', 'MATERIA', 'CURSO']);
-                const idxGrupo = findCol(['GRUPO']);
+                const idxGrupo = findCol(['GRUPO', 'GRUPO TUTORIAL']);
                 const idxBloque = findCol(['BLOQUE']);
-                const idxFInicio = findCol(['FECHA I', 'INICIAL', 'F. INICIO', 'FINICIO']);
-                const idxFFin = findCol(['FECHA F', 'FINAL', 'F. FIN', 'FFIN']);
+                const idxFInicio = findCol(['FECHA I', 'INICIAL', 'F. INICIO', 'FINICIO', 'FECHA INICIAL', 'FECHA INICIO']);
+                const idxFFin = findCol(['FECHA F', 'FINAL', 'F. FIN', 'FFIN', 'FECHA FINAL']);
 
-                // Identificamos las columnas de SEMANA 1 a 16 estrictamente dinámicas
-                // Buscamos de DERECHA a IZQUIERDA en los headers originales.
-                // Esto es crucial porque el Excel tiene columnas resumen con palabras clave
-                // al principio, y luego las columnas detalladas reales al final de la hoja.
+                // Identificamos las columnas de SEMANA 1 a 16 inteligentemente
+                // Si hay varias columnas que se llaman "Semana 1", evalúa el contenido de las filas
+                // para elegir la columna que realmente tiene texto largo (fechas, links de zoom)
+                // y no las columnas de resumen vacías o con códigos cortos (como V, Z5M).
                 const semanasColIndexes = [];
                 for (let s = 1; s <= 16; s++) {
-                    let foundIdx = -1;
-                    for (let i = headers.length - 1; i >= 0; i--) {
+                    const candidateIndexes = [];
+                    for (let i = 0; i < headers.length; i++) {
                         if (headers[i] === undefined || headers[i] === null) continue;
                         const header = String(headers[i]).trim().toUpperCase();
 
-                        // Regex estricto para evitar falsos positivos (ej. que "S1" no haga match con "NOTAS1")
-                        // Permite: "SEMANA 1", "SEMANA1", "SEM 1", "S1" aislados
+                        // Regex estricto para evitar falsos positivos
                         const regexStarts = new RegExp(`^(SEMANA|SEM|S)\\s*0?${s}$`);
                         const regexIncludes = new RegExp(`\\b(SEMANA|SEM)\\s*0?${s}\\b`);
 
-                        // Quitamos la condición de número exacto para evitar falsos positivos con otras columnas
                         if (regexStarts.test(header) || regexIncludes.test(header)) {
-                            foundIdx = i;
-                            break; // Rompemos al encontrar el primero desde la derecha (último en el Excel)
+                            candidateIndexes.push(i);
                         }
                     }
-                    semanasColIndexes.push(foundIdx);
+
+                    let bestIdx = -1;
+                    if (candidateIndexes.length === 1) {
+                        bestIdx = candidateIndexes[0];
+                    } else if (candidateIndexes.length > 1) {
+                        let maxScore = -1;
+                        for (const idx of candidateIndexes) {
+                            let score = 0;
+                            // Muestrear hasta 50 filas para sumar la longitud del texto
+                            const limit = Math.min(rows.length, headerRowIdx + 50);
+                            for (let r = headerRowIdx + 1; r < limit; r++) {
+                                if (rows[r] && rows[r][idx]) {
+                                    score += String(rows[r][idx]).trim().length;
+                                }
+                            }
+                            if (score > maxScore) {
+                                maxScore = score;
+                                bestIdx = idx;
+                            }
+                        }
+                    }
+                    semanasColIndexes.push(bestIdx !== -1 ? bestIdx : -1);
                 }
 
                 if (idxNombre === -1 || idxCedula === -1) {
