@@ -1,6 +1,6 @@
 import React from 'react';
 
-const Header = ({ onReset, docente, searchTerm, setSearchTerm, onSearch, loading, onHelp }) => {
+const Header = ({ onReset, docente, searchTerm, setSearchTerm, onSearch, loading }) => {
   return (
     <header className="bg-[#003366] py-6 relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-5 flex flex-col md:flex-row justify-between items-center relative z-10 gap-4 md:gap-0">
@@ -22,15 +22,15 @@ const Header = ({ onReset, docente, searchTerm, setSearchTerm, onSearch, loading
               Campus Virtual
             </a>
 
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                if (onHelp) onHelp();
-              }}
-              className="inline-flex items-center gap-1.5 bg-[#db9b32]/20 hover:bg-[#db9b32]/40 text-[#db9b32] px-4 py-1.5 rounded-full text-xs font-bold transition-colors border border-[#db9b32]/30 cursor-pointer"
+            <a
+              href="https://universidadmag-my.sharepoint.com/:f:/g/personal/acantillo_unimagdalena_edu_co/IgAtZLm1Z-5YRIkHr25vC6BRAYbjxQUbr8id7AALp2TlW28?e=Zt8nYB"
+              target="_blank"
+              rel="noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex items-center gap-1.5 bg-[#db9b32]/20 hover:bg-[#db9b32]/40 text-[#db9b32] px-4 py-1.5 rounded-full text-xs font-bold transition-colors border border-[#db9b32]/30 cursor-pointer no-underline"
             >
               🎬 Centro de Ayuda
-            </button>
+            </a>
           </div>
         </div>
         <div className="w-full md:w-auto flex justify-center">

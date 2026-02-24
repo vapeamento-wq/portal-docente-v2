@@ -7,7 +7,6 @@ import Timeline from './components/Timeline';
 import Toast from './components/Toast';
 import LoginModal from './components/LoginModal';
 import AdminPanel from './components/AdminPanel';
-import HelpCenter from './components/HelpCenter';
 import { motion, AnimatePresence } from 'framer-motion';
 import { registrarLog, procesarCursos, formatoFechaHora, URL_SCRIPT_LOGS } from './utils/helpers';
 
@@ -22,7 +21,6 @@ const fetcher = (...args) => fetch(...args).then(res => res.json());
 const App = () => {
   const [view, setView] = useState('user');
   const [passInput, setPassInput] = useState('');
-  const [showHelpCenter, setShowHelpCenter] = useState(false);
 
   // Estados Usuario
   const [searchTerm, setSearchTerm] = useState('');
@@ -237,11 +235,6 @@ const App = () => {
         />
       )}
 
-      {/* HELP CENTER MODAL */}
-      <AnimatePresence>
-        {showHelpCenter && <HelpCenter onClose={() => setShowHelpCenter(false)} />}
-      </AnimatePresence>
-
       <Header
         onReset={handleReset}
         docente={docente}
@@ -249,7 +242,6 @@ const App = () => {
         setSearchTerm={setSearchTerm}
         onSearch={handleSearch}
         loading={isLoading}
-        onHelp={() => setShowHelpCenter(true)}
       />
 
       {anuncio && view !== 'admin' && (
