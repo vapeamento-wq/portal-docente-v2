@@ -59,15 +59,15 @@ const parseCourseDate = (fechaStr, horaStr) => {
     const parts = fechaStr.split('/').map(p => p.trim());
 
     let year = new Date().getFullYear();
-    let day = 1;
-    let month = 0;
+    let day = null;
+    let month = null;
 
     parts.forEach(p => {
       const num = parseInt(p);
       if (!isNaN(num)) {
         if (num > 2000) {
           year = num;
-        } else if (num >= 1 && num <= 31) {
+        } else if (num >= 1 && num <= 31 && !p.toLowerCase().includes('semana')) {
           day = num;
         }
       } else {
@@ -77,6 +77,14 @@ const parseCourseDate = (fechaStr, horaStr) => {
         }
       }
     });
+
+    if (day !== null && month === null) {
+      if (fechaStr.toLowerCase().includes('semana')) {
+        day = null;
+      }
+    }
+
+    if (day === null || month === null) return null;
 
     // Hora: "11 a 13" o "7 A 9" -> Take start hour "11" o "7"
     let hour = 9; // Default
@@ -111,6 +119,7 @@ export const procesarCursos = (cursos) => {
   return cursos.map(curso => {
     const semanasProcesadas = [];
     const semanasRaw = curso.semanasRaw || [];
+    let lastValidStatus = 'future'; // Fallback logical if no previous date exists
 
     semanasRaw.forEach((texto, i) => {
       // Basic validation
@@ -168,6 +177,11 @@ export const procesarCursos = (cursos) => {
             status = 'present';
           }
         }
+
+        lastValidStatus = status; // Update fallback for next iterations
+      } else {
+        // If the date is invalid (e.g. "Semana 5"), assume it continues the timeline from the previous node
+        status = lastValidStatus;
       }
 
       // --- 4. Content Logic (Zoom, Location, etc) ---
