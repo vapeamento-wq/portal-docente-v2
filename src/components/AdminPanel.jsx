@@ -133,11 +133,22 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                 const idxFInicio = findCol(['FECHA I', 'INICIAL', 'F. INICIO', 'FINICIO']);
                 const idxFFin = findCol(['FECHA F', 'FINAL', 'F. FIN', 'FFIN']);
 
-                // Identificamos las columnas de SEMANA 1 a 16 dinámicamente
+                // Identificamos las columnas de SEMANA 1 a 16 estrictamente dinámicas
                 const semanasColIndexes = [];
                 for (let s = 1; s <= 16; s++) {
-                    const idxSemana = findCol([`SEMANA ${s}`, `SEM ${s}`, `S${s}`]);
-                    semanasColIndexes.push(idxSemana);
+                    let foundIdx = -1;
+                    for (const [header, idx] of Object.entries(colMap)) {
+                        // Regex estricto para evitar falsos positivos (ej. que "S1" no haga match con "NOTAS1")
+                        // Permite: "SEMANA 1", "SEMANA1", "SEM 1", "S1" aislados, o "1", "01"
+                        const regexStarts = new RegExp(`^(SEMANA|SEM|S)\\s*0?${s}$`);
+                        const regexIncludes = new RegExp(`\\b(SEMANA|SEM)\\s*0?${s}\\b`);
+
+                        if (regexStarts.test(header) || regexIncludes.test(header) || header === String(s) || header === `0${s}`) {
+                            foundIdx = idx;
+                            break;
+                        }
+                    }
+                    semanasColIndexes.push(foundIdx);
                 }
 
                 if (idxNombre === -1 || idxCedula === -1) {
@@ -208,20 +219,20 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
 
                 // Sincronizar directo a Firebase con autenticación secreta
                 const secretAuth = import.meta.env.VITE_FIREBASE_SECRET;
-                const res = await fetch(`${FIREBASE_DB_URL}?auth=${secretAuth}`, {
+                const res = await fetch(`${FIREBASE_DB_URL}?auth = ${secretAuth} `, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(docentesDB)
                 });
 
                 if (res.ok) {
-                    setUploadResult(`✅ ¡Base de datos de Firebase actualizada con éxito!\nDocentes: ${countDocentes}\nCursos: ${countCursos}`);
+                    setUploadResult(`✅ ¡Base de datos de Firebase actualizada con éxito!\nDocentes: ${countDocentes} \nCursos: ${countCursos} `);
                 } else {
-                    setUploadResult(`❌ Error de red al sincronizar con Firebase: ${res.statusText}`);
+                    setUploadResult(`❌ Error de red al sincronizar con Firebase: ${res.statusText} `);
                 }
             } catch (err) {
                 console.error(err);
-                setUploadResult(`❌ Error procesando el Excel: ${err.message}`);
+                setUploadResult(`❌ Error procesando el Excel: ${err.message} `);
             } finally {
                 setUploading(false);
             }
@@ -257,14 +268,14 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                         if (eventDate.getTime() === today.getTime()) {
 
                             // Clave única para deduplicar: ID Docente + Hora Exacta + Rango de horas texto
-                            const uniqueKey = `${docente.idReal}_${semana.fechaObj.getTime()}_${semana.hora}`;
+                            const uniqueKey = `${docente.idReal}_${semana.fechaObj.getTime()}_${semana.hora} `;
 
                             if (activosMap.has(uniqueKey)) {
                                 // Ya existe una clase de este profe a esta hora. Combinar nombres de materia.
                                 const existing = activosMap.get(uniqueKey);
                                 // Evitar duplicar nombres si la materia se llama igual en varios grupos
                                 if (!existing.cursoMateria.includes(curso.materia)) {
-                                    existing.cursoMateria += ` / ${curso.materia}`;
+                                    existing.cursoMateria += ` / ${curso.materia} `;
                                 }
                             } else {
                                 // Nueva entrada
@@ -320,7 +331,7 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
         try {
             const secretAuth = import.meta.env.VITE_FIREBASE_SECRET;
             const dbBaseUrl = import.meta.env.VITE_FIREBASE_DB_BASE_URL;
-            await fetch(`${dbBaseUrl}/config/anuncio.json?auth=${secretAuth}`, {
+            await fetch(`${dbBaseUrl} /config/anuncio.json ? auth = ${secretAuth} `, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -428,11 +439,11 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                             <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Modo Mantenimiento:</span>
                             <button
                                 onClick={() => setMantenimientoActivo(!mantenimientoActivo)}
-                                className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none ${mantenimientoActivo ? 'bg-red-500' : 'bg-gray-300 dark:bg-slate-600'}`}
+                                className={`relative inline - flex h - 7 w - 14 items - center rounded - full transition - colors focus: outline - none ${mantenimientoActivo ? 'bg-red-500' : 'bg-gray-300 dark:bg-slate-600'} `}
                             >
-                                <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${mantenimientoActivo ? 'translate-x-8' : 'translate-x-1'}`} />
+                                <span className={`inline - block h - 5 w - 5 transform rounded - full bg - white transition - transform ${mantenimientoActivo ? 'translate-x-8' : 'translate-x-1'} `} />
                             </button>
-                            <span className={`text-xs font-bold px-2 py-1 rounded-md ${mantenimientoActivo ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'}`}>
+                            <span className={`text - xs font - bold px - 2 py - 1 rounded - md ${mantenimientoActivo ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'} `}>
                                 {mantenimientoActivo ? 'ACTIVADO' : 'Inactivo'}
                             </span>
                         </div>
@@ -515,10 +526,10 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                                     return (
                                         <div
                                             key={i}
-                                            className={`p-4 border rounded-xl transition-all relative overflow-hidden group ${bgColor} ${borderColor}`}
+                                            className={`p - 4 border rounded - xl transition - all relative overflow - hidden group ${bgColor} ${borderColor} `}
                                         >
                                             {/* Indicador de estado lateral */}
-                                            <div className={`absolute left-0 top-0 bottom-0 w-1 ${indicatorColor}`} />
+                                            <div className={`absolute left - 0 top - 0 bottom - 0 w - 1 ${indicatorColor} `} />
 
                                             <div className="flex justify-between items-start mb-2 pl-2">
                                                 <div
@@ -528,9 +539,9 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                                                 >
                                                     {act.nombreDocente}
                                                 </div>
-                                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase ml-2 flex-shrink-0 ${act.status === 'past' ? 'bg-gray-200 text-gray-600' :
-                                                    act.status === 'present' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
-                                                    }`}>
+                                                <span className={`text - [9px] font - bold px - 1.5 py - 0.5 rounded - full uppercase ml - 2 flex - shrink - 0 ${act.status === 'past' ? 'bg-gray-200 text-gray-600' :
+                                                        act.status === 'present' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                                                    } `}>
                                                     {statusText}
                                                 </span>
                                             </div>
@@ -541,10 +552,10 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                                                 <span className="text-xs text-gray-500 font-bold flex items-center gap-1">⏰ {act.hora}</span>
                                                 <a href={act.zoomLink} target="_blank" rel="noreferrer"
                                                     onClick={(e) => { e.stopPropagation(); registrarLog('admin', `Unido a clase de ${act.nombreDocente} (Sem ${act.numSemana})`); }}
-                                                    className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-colors cursor-pointer no-underline ${act.status === 'past' ? 'bg-gray-400 hover:bg-gray-500' :
-                                                        act.status === 'present' ? 'bg-[#25D366] hover:bg-green-600 shadow-[0_2px_10px_rgba(37,211,102,0.2)]' :
-                                                            'bg-[#2D8CFF] hover:bg-blue-600'
-                                                        }`}
+                                                    className={`inline - flex items - center justify - center gap - 1.5 px - 3 py - 1.5 rounded - lg text - xs font - bold text - white transition - colors cursor - pointer no - underline ${act.status === 'past' ? 'bg-gray-400 hover:bg-gray-500' :
+                                                            act.status === 'present' ? 'bg-[#25D366] hover:bg-green-600 shadow-[0_2px_10px_rgba(37,211,102,0.2)]' :
+                                                                'bg-[#2D8CFF] hover:bg-blue-600'
+                                                        } `}
                                                 >
                                                     🎥 Entrar
                                                 </a>
