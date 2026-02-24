@@ -7,6 +7,7 @@ import Timeline from './components/Timeline';
 import Toast from './components/Toast';
 import LoginModal from './components/LoginModal';
 import AdminPanel from './components/AdminPanel';
+import HelpCenter from './components/HelpCenter';
 import { motion, AnimatePresence } from 'framer-motion';
 import { registrarLog, procesarCursos, formatoFechaHora, URL_SCRIPT_LOGS } from './utils/helpers';
 
@@ -21,6 +22,7 @@ const fetcher = (...args) => fetch(...args).then(res => res.json());
 const App = () => {
   const [view, setView] = useState('user');
   const [passInput, setPassInput] = useState('');
+  const [showHelpCenter, setShowHelpCenter] = useState(false);
 
   // Estados Usuario
   const [searchTerm, setSearchTerm] = useState('');
@@ -43,6 +45,7 @@ const App = () => {
     }
   );
 
+  // ... (keeping useEffects and handlers intact below)
   // Efecto para procesar datos cuando llegan de SWR
   const showToast = (mensaje) => {
     setToast({ show: true, msg: mensaje });
@@ -234,6 +237,11 @@ const App = () => {
         />
       )}
 
+      {/* HELP CENTER MODAL */}
+      <AnimatePresence>
+        {showHelpCenter && <HelpCenter onClose={() => setShowHelpCenter(false)} />}
+      </AnimatePresence>
+
       <Header
         onReset={handleReset}
         docente={docente}
@@ -266,13 +274,21 @@ const App = () => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.4 }}
-              className="col-span-1 md:col-span-2 text-center py-24 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border border-white/20 dark:border-white/5 shadow-lg rounded-[20px] transition-colors duration-300"
+              className="col-span-1 md:col-span-2 text-center py-24 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border border-white/20 dark:border-white/5 shadow-lg rounded-[20px] transition-colors duration-300 relative overflow-hidden"
             >
               <div className="text-8xl mb-5">👨‍🏫</div>
               <h1 className="text-[#003366] dark:text-blue-400 mb-4 text-4xl font-bold">Portal Docente</h1>
               <p className="text-gray-500 dark:text-gray-400 max-w-xl mx-auto text-lg leading-relaxed">Gestiona tu programación académica de forma privada y segura.</p>
+
+              <button
+                onClick={() => setShowHelpCenter(true)}
+                className="mt-8 bg-[#003366] hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-700 text-white border-none py-3 px-8 rounded-full font-bold shadow-lg cursor-pointer flex items-center gap-2 mx-auto transition-all hover:scale-105"
+              >
+                🎬 Ver Mini-Clips de Ayuda
+              </button>
+
               <div className="mt-10 text-xl text-gray-800 dark:text-gray-200 font-bold capitalize">{formatoFechaHora(fechaActual).fecha}</div>
-              <div className="mt-20 cursor-pointer opacity-30 text-xs hover:opacity-100 transition-opacity dark:text-gray-400" onClick={() => setView('login')}>🔒 Acceso Administrativo</div>
+              <div className="absolute bottom-5 right-5 cursor-pointer opacity-20 text-xs hover:opacity-100 transition-opacity dark:text-gray-400" onClick={() => setView('login')}>🔒 Acceso Administrativo</div>
             </motion.div>
           ) : (
             <motion.div
@@ -297,9 +313,25 @@ const App = () => {
         </AnimatePresence>
       </main>
 
-      <a href={`https://wa.me/${WHATSAPP_NUMBER}`} target="_blank" rel="noreferrer" className="fixed bottom-8 right-8 bg-[#25D366] text-white px-6 py-4 rounded-full font-bold shadow-[0_10px_30px_rgba(37,211,102,0.4)] z-50 hover:scale-105 transition-transform flex items-center gap-2 no-underline">
-        💬 Ayuda
-      </a>
+      {/* Floating Action Buttons */}
+      <div className="fixed bottom-8 right-8 flex flex-col gap-4 z-50">
+        <button
+          onClick={() => setShowHelpCenter(true)}
+          className="bg-[#003366] dark:bg-blue-600 text-white w-14 h-14 rounded-full font-bold shadow-[0_10px_30px_rgba(0,51,102,0.4)] hover:scale-110 transition-transform flex items-center justify-center text-2xl border-none cursor-pointer"
+          title="Centro de Ayuda (Videos)"
+        >
+          🎬
+        </button>
+        <a
+          href={`https://wa.me/${WHATSAPP_NUMBER}`}
+          target="_blank"
+          rel="noreferrer"
+          className="bg-[#25D366] text-white w-14 h-14 rounded-full font-bold shadow-[0_10px_30px_rgba(37,211,102,0.4)] hover:scale-110 transition-transform flex items-center justify-center text-2xl no-underline"
+          title="Soporte por WhatsApp"
+        >
+          💬
+        </a>
+      </div>
     </div>
   );
 };

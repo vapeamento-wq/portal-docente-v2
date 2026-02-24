@@ -652,13 +652,89 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                                     )}
                                 </tbody>
                             </table>
-                            {docentesList.length > 15 && filterDocente === '' && (
-                                <div className="text-center p-4 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                                    Mostrando primeros 15 docentes. Usa el buscador para encontrar más.
-                                </div>
-                            )}
                         </div>
+
                     </div>
+                </div>
+
+                {/* NUEVO: Gestión de Mini-Clips */}
+                <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-100 dark:border-slate-700 transition-colors flex flex-col h-[600px] col-span-1 lg:col-span-2">
+                    <div className="flex justify-between items-center mb-6">
+                        <h4 className="m-0 text-[#2D8CFF] font-bold text-xl flex items-center gap-2">🎬 Gestión de Mini-Clips (Ayuda)</h4>
+                    </div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 border-b border-gray-100 dark:border-slate-700 pb-4">
+                        Agrega videos tutoriales desde SharePoint para el Centro de Ayuda. Solo necesitas pegar el enlace o código de inserción (iframe) y ponerle un título.
+                    </p>
+
+                    <form onSubmit={async (e) => {
+                        e.preventDefault();
+                        const form = e.target;
+                        const title = form.videoTitle.value.trim();
+                        const description = form.videoDesc.value.trim();
+                        const embedCode = form.embedCode.value.trim();
+
+                        if (!title || !embedCode) {
+                            alert("El título y el código de inserción son obligatorios.");
+                            return;
+                        }
+
+                        // Try to extract src from iframe if user pasted whole iframe block
+                        let iframeUrl = embedCode;
+                        const srcMatch = embedCode.match(/src="([^"]+)"/);
+                        if (srcMatch && srcMatch[1]) {
+                            iframeUrl = srcMatch[1];
+                        }
+
+                        try {
+                            const secretAuth = import.meta.env.VITE_FIREBASE_SECRET;
+                            const dbBaseUrl = import.meta.env.VITE_FIREBASE_DB_BASE_URL;
+                            const newId = `vid_${Date.now()}`;
+
+                            await fetch(`${dbBaseUrl}/miniclips/${newId}.json?auth=${secretAuth}`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    title,
+                                    description,
+                                    iframeUrl,
+                                    timestamp: Date.now()
+                                })
+                            });
+
+                            alert("✅ Mini-Clip agregado con éxito al portal.");
+                            form.reset();
+                        } catch (err) {
+                            console.error(err);
+                            alert("❌ Error al guardar el video en Firebase.");
+                        }
+                    }} className="flex flex-col gap-4 max-w-2xl">
+                        <div className="flex flex-col gap-1 asd">
+                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Título del Video *</label>
+                            <input name="videoTitle" type="text" required placeholder="Ej. ¿Cómo registrar asistencia?" className="p-3 w-full rounded-xl border border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003366] transition-all font-medium text-sm" />
+                        </div>
+
+                        <div className="flex flex-col gap-1">
+                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Descripción (Opcional)</label>
+                            <input name="videoDesc" type="text" placeholder="Breve descripción del proceso." className="p-3 w-full rounded-xl border border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003366] transition-all font-medium text-sm" />
+                        </div>
+
+                        <div className="flex flex-col gap-1">
+                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Enlace / Código de Inserción (iframe) *</label>
+                            <textarea
+                                name="embedCode"
+                                required
+                                placeholder='Pega aquí el enlace de inserción de SharePoint (ej. <iframe src="https://universidadmag-my.sharepoint.com/... "></iframe>)'
+                                className="p-3 w-full rounded-xl border border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003366] transition-all min-h-[100px] resize-y text-sm font-mono"
+                            ></textarea>
+                            <span className="text-xs text-gray-400 mt-1">Sugerencia: Abre el video en OneDrive/SharePoint, haz clic en "Incrustar" o "Compartir", y copia todo el bloque de código o el enlace web que te da.</span>
+                        </div>
+
+                        <div className="mt-2">
+                            <button type="submit" className="px-6 py-3 bg-[#2D8CFF] hover:bg-blue-600 text-white font-bold rounded-xl transition-colors cursor-pointer shadow-md inline-flex items-center gap-2 border-none">
+                                <span>➕ Guardar Mini-Clip</span>
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
