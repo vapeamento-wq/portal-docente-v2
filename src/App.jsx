@@ -150,15 +150,20 @@ const App = () => {
     setView('user');
   };
 
+  const [isAdminAuth, setIsAdminAuth] = useState(localStorage.getItem('isAdminAuth') === 'true');
+
   const handleReset = () => {
     localStorage.removeItem('portal_docente_id'); // Borrar ID
     setDocente(null);
     setSearchTerm('');
     setSearchId(null);
     setSelectedCursoIdx(0);
-  };
 
-  const [isAdminAuth, setIsAdminAuth] = useState(localStorage.getItem('isAdminAuth') === 'true');
+    // Si el usuario es un administrador autenticado, devolverlo a su panel
+    if (isAdminAuth) {
+      setView('admin');
+    }
+  };
 
   const handleLogin = (e) => {
     e.preventDefault();

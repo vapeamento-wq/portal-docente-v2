@@ -162,33 +162,8 @@ export const procesarCursos = (cursos) => {
           } else if (courseWeek > currentWeek) {
             status = 'future';
           } else {
-            // It's the current week. Check specifically for TODAY and HOURS to be precise for the Radar and Timeline.
-            if (!isNaN(fechaObj.getTime())) {
-              const todayStr = hoy.toISOString().split('T')[0];
-              const courseStr = fechaObj.toISOString().split('T')[0];
-
-              if (courseStr < todayStr) {
-                status = 'past';
-              } else if (courseStr > todayStr) {
-                status = 'future';
-              } else {
-                // It is TODAY. Check the specific hours.
-                const currentHour = hoy.getHours();
-                const courseStartHour = fechaObj.getHours(); // Extraído en parseCourseDate (ej: 14)
-
-                // Asumimos que las clases duran 2 horas por defecto basado en "14 a 16"
-                // Si parseCourseDate extrajo 14, termina a las 16
-                const courseEndHour = courseStartHour + 2;
-
-                if (currentHour < courseStartHour) {
-                  status = 'future'; // Es hoy, pero más tarde
-                } else if (currentHour >= courseEndHour) {
-                  status = 'past'; // Es hoy, pero ya se acabó
-                } else {
-                  status = 'present'; // Está en el rango de horas AHORA MISMO
-                }
-              }
-            }
+            // El usuario solicitó que "la semana que estamos corriendo" se vea verde (present) en su totalidad.
+            status = 'present';
           }
         }
       }
