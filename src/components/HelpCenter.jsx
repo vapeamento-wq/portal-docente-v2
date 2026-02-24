@@ -150,12 +150,12 @@ const HelpCenter = ({ onClose }) => {
                                 </button>
                             </div>
 
-                            <div className="p-4 bg-gradient-to-b from-black/80 to-transparent absolute top-0 left-0 right-0 z-[115] pointer-events-none">
+                            <div className="p-4 bg-gradient-to-b from-black/80 to-transparent absolute top-0 left-0 right-0 z-[115] pointer-events-none flex justify-between items-start">
                                 <h3 className="text-white font-bold text-lg m-0 pr-12 drop-shadow-md">{selectedVideo.title}</h3>
                             </div>
 
                             {/* Important: SharePoint iframe embedding */}
-                            <div className="aspect-video w-full bg-slate-900 mt-0">
+                            <div className="aspect-video w-full bg-slate-900 mt-0 relative">
                                 <iframe
                                     src={selectedVideo.iframeUrl}
                                     width="100%"
@@ -167,11 +167,22 @@ const HelpCenter = ({ onClose }) => {
                                 ></iframe>
                             </div>
 
-                            {selectedVideo.description && (
-                                <div className="p-4 bg-slate-900 text-gray-300 text-sm border-t border-slate-800">
-                                    <span className="opacity-70">Nota: </span> {selectedVideo.description}
-                                </div>
-                            )}
+                            <div className="p-4 bg-slate-900 border-t border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                {selectedVideo.description && (
+                                    <div className="text-gray-300 text-sm flex-1">
+                                        <span className="opacity-70">Nota: </span> {selectedVideo.description}
+                                    </div>
+                                )}
+                                <a
+                                    href={selectedVideo.iframeUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-2 bg-[#db9b32] hover:bg-[#c68a2e] text-[#003366] px-4 py-2 rounded-lg font-bold text-sm transition-colors border-none no-underline flex-shrink-0"
+                                    title="Abre el video en una pestaña normal si ves un error de inicio de sesión."
+                                >
+                                    <span>🔗</span> Abrir en nueva pestaña
+                                </a>
+                            </div>
                         </motion.div>
                     </motion.div>
                 )}

@@ -20,6 +20,7 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
     const [anuncioFin, setAnuncioFin] = useState('');
     const [guardandoAnuncio, setGuardandoAnuncio] = useState(false);
     const [mantenimientoActivo, setMantenimientoActivo] = useState(false);
+    const [miniclipsList, setMiniclipsList] = useState([]);
 
     useEffect(() => {
         // Fetch current teachers on mount
@@ -65,6 +66,20 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                         setMantenimientoActivo(Boolean(dataAnuncio.mantenimiento));
                     }
                 }
+
+                // Fetch Miniclips
+                const resMiniclips = await fetch(`${dbBaseUrl}/miniclips.json`);
+                const dataMiniclips = await resMiniclips.json();
+                if (dataMiniclips) {
+                    const clipsArray = Object.keys(dataMiniclips).map(key => ({
+                        id: key,
+                        ...dataMiniclips[key]
+                    }));
+                    // Sort by newest first
+                    clipsArray.sort((a, b) => b.timestamp - a.timestamp);
+                    setMiniclipsList(clipsArray);
+                }
+
             } catch (err) {
                 console.error("Error fetching admin data:", err);
             } finally {
@@ -686,26 +701,37 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                         }
 
                         try {
+                            const submitBtn = form.querySelector('button[type="submit"]');
+                            if (submitBtn) submitBtn.disabled = true;
+
                             const secretAuth = import.meta.env.VITE_FIREBASE_SECRET;
                             const dbBaseUrl = import.meta.env.VITE_FIREBASE_DB_BASE_URL;
                             const newId = `vid_${Date.now()}`;
+                            const newClip = {
+                                title,
+                                description,
+                                iframeUrl,
+                                timestamp: Date.now()
+                            };
 
                             await fetch(`${dbBaseUrl}/miniclips/${newId}.json?auth=${secretAuth}`, {
                                 method: 'PUT',
                                 headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    title,
-                                    description,
-                                    iframeUrl,
-                                    timestamp: Date.now()
-                                })
+                                body: JSON.stringify(newClip)
                             });
 
                             alert("✅ Mini-Clip agregado con éxito al portal.");
                             form.reset();
+
+                            // Update local list
+                            setMiniclipsList(prev => [{ id: newId, ...newClip }, ...prev]);
+
+                            if (submitBtn) submitBtn.disabled = false;
                         } catch (err) {
                             console.error(err);
                             alert("❌ Error al guardar el video en Firebase.");
+                            const submitBtn = form.querySelector('button[type="submit"]');
+                            if (submitBtn) submitBtn.disabled = false;
                         }
                     }} className="flex flex-col gap-4 max-w-2xl">
                         <div className="flex flex-col gap-1 asd">
@@ -735,6 +761,43 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                             </button>
                         </div>
                     </form>
+
+                    {/* Lista de Mini-Clips Existentes */}
+                    {miniclipsList.length > 0 && (
+                        <div className="mt-10 border-t border-gray-100 dark:border-slate-700 pt-6">
+                            <h5 className="m-0 mb-4 text-[#003366] dark:text-blue-400 font-bold text-lg">Videos Actuales ({miniclipsList.length})</h5>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {miniclipsList.map(clip => (
+                                    <div key={clip.id} className="bg-gray-50 dark:bg-slate-900/50 p-4 rounded-xl border border-gray-200 dark:border-slate-700 flex flex-col justify-between">
+                                        <div>
+                                            <h6 className="m-0 font-bold text-[#1A1A1A] dark:text-white text-sm line-clamp-2" title={clip.title}>{clip.title}</h6>
+                                            {clip.description && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">{clip.description}</p>}
+                                        </div>
+                                        <button
+                                            onClick={async () => {
+                                                if (window.confirm(`¿Estás seguro de eliminar el video "${clip.title}"?`)) {
+                                                    try {
+                                                        const secretAuth = import.meta.env.VITE_FIREBASE_SECRET;
+                                                        const dbBaseUrl = import.meta.env.VITE_FIREBASE_DB_BASE_URL;
+                                                        await fetch(`${dbBaseUrl}/miniclips/${clip.id}.json?auth=${secretAuth}`, {
+                                                            method: 'DELETE'
+                                                        });
+                                                        setMiniclipsList(prev => prev.filter(c => c.id !== clip.id));
+                                                        alert("🗑️ Video eliminado.");
+                                                    } catch (err) {
+                                                        alert("Error al eliminar.");
+                                                    }
+                                                }
+                                            }}
+                                            className="mt-4 px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 text-xs font-bold rounded-lg transition-colors border-none cursor-pointer self-start"
+                                        >
+                                            Eliminar Video
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
