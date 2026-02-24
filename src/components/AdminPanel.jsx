@@ -551,10 +551,10 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                                     return (
                                         <div
                                             key={i}
-                                            className={`p - 4 border rounded - xl transition - all relative overflow - hidden group ${bgColor} ${borderColor} `}
+                                            className={`p-4 border rounded-xl transition-all relative overflow-hidden group ${bgColor} ${borderColor}`}
                                         >
                                             {/* Indicador de estado lateral */}
-                                            <div className={`absolute left - 0 top - 0 bottom - 0 w - 1 ${indicatorColor} `} />
+                                            <div className={`absolute left-0 top-0 bottom-0 w-1 ${indicatorColor}`} />
 
                                             <div className="flex justify-between items-start mb-2 pl-2">
                                                 <div
@@ -564,9 +564,9 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                                                 >
                                                     {act.nombreDocente}
                                                 </div>
-                                                <span className={`text - [9px] font - bold px - 1.5 py - 0.5 rounded - full uppercase ml - 2 flex - shrink - 0 ${act.status === 'past' ? 'bg-gray-200 text-gray-600' :
+                                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase ml-2 flex-shrink-0 ${act.status === 'past' ? 'bg-gray-200 text-gray-600' :
                                                     act.status === 'present' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
-                                                    } `}>
+                                                    }`}>
                                                     {statusText}
                                                 </span>
                                             </div>
@@ -577,10 +577,10 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                                                 <span className="text-xs text-gray-500 font-bold flex items-center gap-1">⏰ {act.hora}</span>
                                                 <a href={act.zoomLink} target="_blank" rel="noreferrer"
                                                     onClick={(e) => { e.stopPropagation(); registrarLog('admin', `Unido a clase de ${act.nombreDocente} (Sem ${act.numSemana})`); }}
-                                                    className={`inline - flex items - center justify - center gap - 1.5 px - 3 py - 1.5 rounded - lg text - xs font - bold text - white transition - colors cursor - pointer no - underline ${act.status === 'past' ? 'bg-gray-400 hover:bg-gray-500' :
+                                                    className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-colors cursor-pointer no-underline ${act.status === 'past' ? 'bg-gray-400 hover:bg-gray-500' :
                                                         act.status === 'present' ? 'bg-[#25D366] hover:bg-green-600 shadow-[0_2px_10px_rgba(37,211,102,0.2)]' :
                                                             'bg-[#2D8CFF] hover:bg-blue-600'
-                                                        } `}
+                                                        }`}
                                                 >
                                                     🎥 Entrar
                                                 </a>
