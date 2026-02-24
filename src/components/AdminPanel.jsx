@@ -356,7 +356,7 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
         try {
             const secretAuth = import.meta.env.VITE_FIREBASE_SECRET;
             const dbBaseUrl = import.meta.env.VITE_FIREBASE_DB_BASE_URL;
-            await fetch(`${dbBaseUrl} /config/anuncio.json ? auth = ${secretAuth} `, {
+            await fetch(`${dbBaseUrl}/config/anuncio.json?auth=${secretAuth}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

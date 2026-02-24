@@ -18,7 +18,7 @@ const Timeline = ({ cursoActivo, docenteId }) => {
                 <h3 className="text-[#003366] dark:text-blue-400 m-0 text-xl font-bold transition-colors">Cronograma de Actividades</h3>
                 <div className="flex bg-gray-100 dark:bg-slate-700/50 p-1 rounded-lg">
                     <button onClick={() => setViewMode('timeline')} className={`px-4 py-1.5 rounded-md text-sm font-bold transition-all cursor-pointer border-none ${viewMode === 'timeline' ? 'bg-white shadow text-[#003366] dark:bg-slate-600 dark:text-blue-300' : 'bg-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Línea de Tiempo</button>
-                    <button onClick={() => setViewMode('calendar')} className={`px-4 py-1.5 rounded-md text-sm font-bold transition-all cursor-pointer border-none ${viewMode === 'calendar' ? 'bg-white shadow text-[#003366] dark:bg-slate-600 dark:text-blue-300' : 'bg-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Calendario</button>
+                    <button onClick={() => setViewMode('calendar')} className={`px-4 py-1.5 rounded-md text-sm font-bold transition-all cursor-pointer border-none ${viewMode === 'calendar' ? 'bg-white shadow text-[#003366] dark:bg-slate-600 dark:text-blue-300' : 'bg-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Tarjetas</button>
                 </div>
             </div>
 

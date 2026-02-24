@@ -62,21 +62,21 @@ const parseCourseDate = (fechaStr, horaStr) => {
     let day = 1;
     let month = 0;
 
-    if (parts.length >= 3) {
-      const p0 = parseInt(parts[0]);
-      if (!isNaN(p0) && p0 > 2000) {
-        year = p0;
-        day = parseInt(parts[1]);
-        month = MESES[parts[2].toLowerCase()] || 0;
+    parts.forEach(p => {
+      const num = parseInt(p);
+      if (!isNaN(num)) {
+        if (num > 2000) {
+          year = num;
+        } else if (num >= 1 && num <= 31) {
+          day = num;
+        }
       } else {
-        // "sábado", "21", "febrero"
-        day = parseInt(parts[1]);
-        month = MESES[parts[2].toLowerCase()] || 0;
+        const m = MESES[p.toLowerCase()];
+        if (m !== undefined) {
+          month = m;
+        }
       }
-    } else if (parts.length === 2) {
-      day = parseInt(parts[0]);
-      month = MESES[parts[1].toLowerCase()] || 0;
-    }
+    });
 
     // Hora: "11 a 13" o "7 A 9" -> Take start hour "11" o "7"
     let hour = 9; // Default
@@ -151,7 +151,9 @@ export const procesarCursos = (cursos) => {
         const currentYear = hoy.getFullYear();
         const courseYear = fechaObj.getFullYear();
 
-        if (courseYear < currentYear) {
+        if (isNaN(courseWeek)) {
+          status = 'past';
+        } else if (courseYear < currentYear) {
           status = 'past';
         } else if (courseYear > currentYear) {
           status = 'future';
