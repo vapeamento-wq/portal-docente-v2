@@ -1,19 +1,20 @@
 import React from 'react';
+import { trackAppEvent } from '../App';
 
 const Header = ({ onReset, docente, searchTerm, setSearchTerm, onSearch, loading }) => {
   return (
     <header className="bg-[#003366] py-6 relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-5 flex flex-col md:flex-row justify-between items-center relative z-10 gap-4 md:gap-0">
-        <div className="text-center md:text-left cursor-pointer flex flex-col justify-center items-center md:items-start" onClick={onReset}>
-          <h1 className="m-0 text-[#db9b32] text-2xl md:text-3xl font-extrabold tracking-tighter">PORTAL DOCENTES</h1>
-          <h2 className="mt-1 text-xs md:text-sm text-white/80 font-medium tracking-[2px] uppercase">CREO - UNIVERSIDAD DEL MAGDALENA</h2>
+        <div className="text-center md:text-left flex flex-col justify-center items-center md:items-start" onClick={onReset}>
+          <h1 className="m-0 text-[#db9b32] text-2xl md:text-3xl font-extrabold tracking-tighter cursor-pointer">PORTAL DOCENTES</h1>
+          <h2 className="mt-1 text-xs md:text-sm text-white/80 font-medium tracking-[2px] uppercase cursor-pointer">CREO - UNIVERSIDAD DEL MAGDALENA</h2>
 
           <div className="mt-3 flex flex-wrap justify-center md:justify-start gap-2">
             <a
               href="https://campusvirtual.unimagdalena.edu.co"
               target="_blank"
               rel="noreferrer"
-              onClick={(e) => e.stopPropagation()} // Prevent resetting when clicking the link
+              onClick={(e) => { e.stopPropagation(); trackAppEvent("click_campus_virtual"); }}
               className="inline-flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white px-4 py-1.5 rounded-full text-xs font-bold transition-colors border border-white/20"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -26,7 +27,7 @@ const Header = ({ onReset, docente, searchTerm, setSearchTerm, onSearch, loading
               href="https://universidadmag-my.sharepoint.com/:f:/g/personal/acantillo_unimagdalena_edu_co/IgAtZLm1Z-5YRIkHr25vC6BRAYbjxQUbr8id7AALp2TlW28?e=Zt8nYB"
               target="_blank"
               rel="noreferrer"
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e) => { e.stopPropagation(); trackAppEvent("click_centro_ayuda"); }}
               className="inline-flex items-center gap-1.5 bg-[#db9b32]/20 hover:bg-[#db9b32]/40 text-[#db9b32] px-4 py-1.5 rounded-full text-xs font-bold transition-colors border border-[#db9b32]/30 cursor-pointer no-underline"
             >
               🎬 Centro de Ayuda

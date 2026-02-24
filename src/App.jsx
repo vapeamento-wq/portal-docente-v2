@@ -9,8 +9,46 @@ import LoginModal from './components/LoginModal';
 import AdminPanel from './components/AdminPanel';
 import { motion, AnimatePresence } from 'framer-motion';
 import { registrarLog, procesarCursos, formatoFechaHora, URL_SCRIPT_LOGS } from './utils/helpers';
+import { initializeApp } from "firebase/app";
+import { getAnalytics, logEvent } from "firebase/analytics";
 
-// --- ⚡ CONFIGURACIÓN MAESTRA (V21.0 - CON LOGS DE ERROR) ---
+// --- ⚡ CONFIGURACIÓN MAESTRA (V21.0 - CON LOGS DE ERROR Y ANALYTICS) ---
+
+// Configuración opcional de Firebase para Analytics (Si no envías VITE_FIREBASE_MEASUREMENT_ID, no hace nada y no rompe la app)
+const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "dummy",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "dummy",
+  databaseURL: import.meta.env.VITE_FIREBASE_DB_BASE_URL,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "dummy",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "dummy",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "dummy",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "dummy",
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
+};
+
+let analytics = null;
+try {
+  // Solo iniciar si measurementId existe.
+  if (firebaseConfig.measurementId && typeof window !== "undefined") {
+    const app = initializeApp(firebaseConfig);
+    analytics = getAnalytics(app);
+    console.log("📊 Google Analytics Inicializado");
+  }
+} catch (e) {
+  console.warn("⚠️ Analytics no pudo iniciar correctamente:", e);
+}
+
+// Custom wrapper to easily track events anywhere
+export const trackAppEvent = (eventName, params = {}) => {
+  if (analytics) {
+    try {
+      logEvent(analytics, eventName, params);
+    } catch (e) {
+      console.warn("Analytics event failed", e);
+    }
+  }
+};
+
 const FIREBASE_DB_URL = `${import.meta.env.VITE_FIREBASE_DB_BASE_URL}/docentes/`;
 const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER;
 const ADMIN_PASS = import.meta.env.VITE_ADMIN_PASS;
@@ -59,10 +97,12 @@ const App = () => {
       setSelectedCursoIdx(0);
       setSearchAttempted(false); // Reset on success
       registrarLog(searchId, '✅ Consulta Exitosa (Cache/Red)');
+      trackAppEvent("search_success");
     } else if (error) {
       showToast('⚠️ Error de Red');
       setSearchAttempted(true); // Show error view
       registrarLog(searchId, '⚠️ Error Crítico de Red');
+      trackAppEvent("search_error", { error_type: "network" });
     } else if (rawData === null && searchId) {
       // SWR devolvió null (no encontrado en Firebase devuelve null body?)
       // Firebase RTDB devuelve null si clave no existe
@@ -70,6 +110,7 @@ const App = () => {
       setSearchAttempted(true); // Show not found view
       showToast('❌ No encontrado');
       registrarLog(searchId, '❌ ID No Encontrado');
+      trackAppEvent("search_error", { error_type: "not_found" });
     }
   }, [rawData, error, searchId]);
 
@@ -349,6 +390,7 @@ const App = () => {
           href={`https://wa.me/${WHATSAPP_NUMBER}`}
           target="_blank"
           rel="noreferrer"
+          onClick={() => trackAppEvent("click_whatsapp_support", { location: "floating_button" })}
           className="bg-[#25D366] text-white w-14 h-14 rounded-full font-bold shadow-[0_10px_30px_rgba(37,211,102,0.4)] hover:scale-110 transition-transform flex items-center justify-center text-2xl no-underline"
           title="Soporte por WhatsApp"
         >
