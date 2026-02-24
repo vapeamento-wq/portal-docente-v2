@@ -73,13 +73,20 @@ const App = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Fetch Global Announcement
+  const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
+
+  // Fetch Global Announcement & Maintenance Mode periodically
   useEffect(() => {
     const fetchAnuncio = async () => {
       try {
         const dbBaseUrl = import.meta.env.VITE_FIREBASE_DB_BASE_URL;
         const res = await fetch(`${dbBaseUrl}/config/anuncio.json`);
         const data = await res.json();
+
+        // Extraer bandera de mantenimiento dinámico
+        if (data && typeof data.mantenimiento !== 'undefined') {
+          setIsMaintenanceMode(Boolean(data.mantenimiento));
+        }
 
         if (data && data.texto && data.texto.trim() !== '') {
           const now = new Date();
@@ -104,11 +111,17 @@ const App = () => {
           setAnuncio(null);
         }
       } catch (err) {
-        console.error("Error fetching announcement:", err);
+        console.error("Error fetching admin config:", err);
       }
     };
+
     fetchAnuncio();
-  }, [view]); // Refetch when view changes (e.g. returning from Admin)
+
+    // Polling cada 30 segundos para detectar si se activó el mantenimiento
+    const pollTimer = setInterval(fetchAnuncio, 30000);
+    return () => clearInterval(pollTimer);
+
+  }, [view]); // Refetch when view changes
 
   // --- 💾 PERSISTENCIA (RECORDARME) ---
   useEffect(() => {
@@ -169,8 +182,8 @@ const App = () => {
     );
   }
 
-  // --- MANTENIMIENTO URGENTE ---
-  const isMaintenance = true; // CAMBIAR A FALSE PARA REACTIVAR EL PORTAL
+  // --- MANTENIMIENTO DINÁMICO ---
+  const isMaintenance = isMaintenanceMode; // Lee el estado de Firebase
 
   // Si está en mantenimiento, no es login, y no es un Admin autenticado, bloquea.
   if (isMaintenance && view !== 'login' && !isAdminAuth) {

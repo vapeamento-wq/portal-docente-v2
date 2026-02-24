@@ -19,6 +19,7 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
     const [anuncioInicio, setAnuncioInicio] = useState('');
     const [anuncioFin, setAnuncioFin] = useState('');
     const [guardandoAnuncio, setGuardandoAnuncio] = useState(false);
+    const [mantenimientoActivo, setMantenimientoActivo] = useState(false);
 
     useEffect(() => {
         // Fetch current teachers on mount
@@ -56,10 +57,13 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                 // Fetch Global Announcement
                 const resAnuncio = await fetch(`${dbBaseUrl}/config/anuncio.json`);
                 const dataAnuncio = await resAnuncio.json();
-                if (dataAnuncio && dataAnuncio.texto) {
-                    setAnuncioGlobal(dataAnuncio.texto);
+                if (dataAnuncio) {
+                    if (dataAnuncio.texto) setAnuncioGlobal(dataAnuncio.texto);
                     if (dataAnuncio.inicio) setAnuncioInicio(dataAnuncio.inicio);
                     if (dataAnuncio.fin) setAnuncioFin(dataAnuncio.fin);
+                    if (typeof dataAnuncio.mantenimiento !== 'undefined') {
+                        setMantenimientoActivo(Boolean(dataAnuncio.mantenimiento));
+                    }
                 }
             } catch (err) {
                 console.error("Error fetching admin data:", err);
@@ -323,7 +327,8 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                     texto: anuncioGlobal,
                     inicio: anuncioInicio || null,
                     fin: anuncioFin || null,
-                    fechaActualizacion: new Date().toISOString()
+                    fechaActualizacion: new Date().toISOString(),
+                    mantenimiento: mantenimientoActivo
                 })
             });
             alert('Anuncio Global actualizado y publicado con éxito.');
@@ -413,14 +418,31 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                     </div>
                 </div>
 
-                {/* NUEVO: Anuncio Global */}
+                {/* NUEVO: Anuncio Global y Mantenimiento */}
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-100 dark:border-slate-700 transition-colors mb-8">
-                    <h4 className="m-0 mb-4 text-[#003366] dark:text-blue-400 font-bold text-xl">📢 Anuncio Global Programable</h4>
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 border-b border-gray-100 dark:border-slate-700 pb-4">
+                        <h4 className="m-0 text-[#003366] dark:text-blue-400 font-bold text-xl">📢 Anuncios & Mantenimiento</h4>
+
+                        {/* THE SWITCH */}
+                        <div className="flex items-center gap-3 bg-gray-50 dark:bg-slate-900/50 p-3 rounded-xl border border-gray-200 dark:border-slate-600">
+                            <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Modo Mantenimiento:</span>
+                            <button
+                                onClick={() => setMantenimientoActivo(!mantenimientoActivo)}
+                                className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none ${mantenimientoActivo ? 'bg-red-500' : 'bg-gray-300 dark:bg-slate-600'}`}
+                            >
+                                <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${mantenimientoActivo ? 'translate-x-8' : 'translate-x-1'}`} />
+                            </button>
+                            <span className={`text-xs font-bold px-2 py-1 rounded-md ${mantenimientoActivo ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'}`}>
+                                {mantenimientoActivo ? 'ACTIVADO' : 'Inactivo'}
+                            </span>
+                        </div>
+                    </div>
+
                     <form onSubmit={handleGuardarAnuncio} className="flex flex-col gap-4">
                         <textarea
                             value={anuncioGlobal}
                             onChange={(e) => setAnuncioGlobal(e.target.value)}
-                            placeholder="Escribe un mensaje aquí. Ej: Estaremos en mantenimiento el sábado..."
+                            placeholder="Escribe un anuncio público aquí. Ej: Bienvenidos al nuevo semestre..."
                             className="w-full p-4 rounded-xl border border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003366] dark:focus:ring-blue-500 transition-all min-h-[100px] resize-y"
                         ></textarea>
 
