@@ -144,27 +144,7 @@ export const procesarCursos = (cursos) => {
       // --- 2. Build Date Object for Logic ---
       const fechaObj = parseCourseDate(fechaRaw, horaRaw);
 
-      // --- 3. Determine Status (Past/Present/Future) ---
-      let status = 'future';
-      if (fechaObj && !isNaN(fechaObj.getTime())) {
-        const todayDate = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
-        const eventDateObj = new Date(fechaObj.getFullYear(), fechaObj.getMonth(), fechaObj.getDate());
-
-        if (eventDateObj < todayDate) {
-          status = 'past';
-        } else if (eventDateObj.getTime() === todayDate.getTime()) {
-          status = 'present';
-        } else {
-          status = 'future';
-        }
-
-        lastValidStatus = status; // Update fallback for next iterations
-      } else {
-        // If the date is invalid (e.g. "Semana 5"), assume it continues the timeline from the previous node
-        status = lastValidStatus;
-      }
-
-      // --- 4. Content Logic (Zoom, Location, etc) ---
+      // --- 3. Content Logic (Zoom, Location, etc) ---
       let tipo = 'ZOOM';
       let displayTexto = '';
       let ubicacion = '';
@@ -198,6 +178,53 @@ export const procesarCursos = (cursos) => {
             finalLink = cleanLink;
           }
         }
+      }
+
+      // --- 4. Determine Status (Past/Present/Future) ---
+      let status = 'future';
+      if (fechaObj && !isNaN(fechaObj.getTime())) {
+        const todayDate = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+        const eventDateObj = new Date(fechaObj.getFullYear(), fechaObj.getMonth(), fechaObj.getDate());
+
+        if (eventDateObj < todayDate) {
+          status = 'past';
+        } else if (eventDateObj.getTime() === todayDate.getTime()) {
+          if (esTrabajoIndependiente) {
+            status = 'present'; // Si es independiente y es hoy, está en curso todo el día.
+          } else {
+            // Detectar hora exacta para ver si ya pasó o está por pasar
+            let hInicio = 0;
+            let hFin = 24;
+            const hLimpia = horaRaw.toLowerCase().trim();
+            const matchH = hLimpia.match(/^(\d+)\s*a\s*(\d+)$/);
+            if (matchH) {
+              hInicio = parseInt(matchH[1], 10);
+              hFin = parseInt(matchH[2], 10);
+            } else {
+              const num = parseInt(hLimpia);
+              if (!isNaN(num)) {
+                hInicio = num;
+                hFin = num + 2; // Asumimos default de 2 horas
+              }
+            }
+
+            const currentHourDec = hoy.getHours() + (hoy.getMinutes() / 60);
+            if (currentHourDec >= hInicio && currentHourDec < hFin) {
+              status = 'present';
+            } else if (currentHourDec >= hFin) {
+              status = 'past';
+            } else {
+              status = 'future';
+            }
+          }
+        } else {
+          status = 'future';
+        }
+
+        lastValidStatus = status; // Update fallback for next iterations
+      } else {
+        // If the date is invalid (e.g. "Semana 5"), assume it continues the timeline from the previous node
+        status = lastValidStatus;
       }
 
 
