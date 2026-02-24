@@ -20,7 +20,6 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
     const [anuncioFin, setAnuncioFin] = useState('');
     const [guardandoAnuncio, setGuardandoAnuncio] = useState(false);
     const [mantenimientoActivo, setMantenimientoActivo] = useState(false);
-    const [miniclipsList, setMiniclipsList] = useState([]);
 
     useEffect(() => {
         // Fetch current teachers on mount
@@ -66,20 +65,6 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                         setMantenimientoActivo(Boolean(dataAnuncio.mantenimiento));
                     }
                 }
-
-                // Fetch Miniclips
-                const resMiniclips = await fetch(`${dbBaseUrl}/miniclips.json`);
-                const dataMiniclips = await resMiniclips.json();
-                if (dataMiniclips) {
-                    const clipsArray = Object.keys(dataMiniclips).map(key => ({
-                        id: key,
-                        ...dataMiniclips[key]
-                    }));
-                    // Sort by newest first
-                    clipsArray.sort((a, b) => b.timestamp - a.timestamp);
-                    setMiniclipsList(clipsArray);
-                }
-
             } catch (err) {
                 console.error("Error fetching admin data:", err);
             } finally {
@@ -670,134 +655,6 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                         </div>
 
                     </div>
-                </div>
-
-                {/* NUEVO: Gestión de Mini-Clips */}
-                <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-100 dark:border-slate-700 transition-colors flex flex-col h-[600px] col-span-1 lg:col-span-2">
-                    <div className="flex justify-between items-center mb-6">
-                        <h4 className="m-0 text-[#2D8CFF] font-bold text-xl flex items-center gap-2">🎬 Gestión de Mini-Clips (Ayuda)</h4>
-                    </div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 border-b border-gray-100 dark:border-slate-700 pb-4">
-                        Agrega videos tutoriales desde SharePoint para el Centro de Ayuda. Solo necesitas pegar el enlace o código de inserción (iframe) y ponerle un título.
-                    </p>
-
-                    <form onSubmit={async (e) => {
-                        e.preventDefault();
-                        const form = e.target;
-                        const title = form.videoTitle.value.trim();
-                        const description = form.videoDesc.value.trim();
-                        const embedCode = form.embedCode.value.trim();
-
-                        if (!title || !embedCode) {
-                            alert("El título y el código de inserción son obligatorios.");
-                            return;
-                        }
-
-                        // Try to extract src from iframe if user pasted whole iframe block
-                        let iframeUrl = embedCode;
-                        const srcMatch = embedCode.match(/src="([^"]+)"/);
-                        if (srcMatch && srcMatch[1]) {
-                            iframeUrl = srcMatch[1];
-                        }
-
-                        try {
-                            const submitBtn = form.querySelector('button[type="submit"]');
-                            if (submitBtn) submitBtn.disabled = true;
-
-                            const secretAuth = import.meta.env.VITE_FIREBASE_SECRET;
-                            const dbBaseUrl = import.meta.env.VITE_FIREBASE_DB_BASE_URL;
-                            const newId = `vid_${Date.now()}`;
-                            const newClip = {
-                                title,
-                                description,
-                                iframeUrl,
-                                timestamp: Date.now()
-                            };
-
-                            await fetch(`${dbBaseUrl}/miniclips/${newId}.json?auth=${secretAuth}`, {
-                                method: 'PUT',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify(newClip)
-                            });
-
-                            alert("✅ Mini-Clip agregado con éxito al portal.");
-                            form.reset();
-
-                            // Update local list
-                            setMiniclipsList(prev => [{ id: newId, ...newClip }, ...prev]);
-
-                            if (submitBtn) submitBtn.disabled = false;
-                        } catch (err) {
-                            console.error(err);
-                            alert("❌ Error al guardar el video en Firebase.");
-                            const submitBtn = form.querySelector('button[type="submit"]');
-                            if (submitBtn) submitBtn.disabled = false;
-                        }
-                    }} className="flex flex-col gap-4 max-w-2xl">
-                        <div className="flex flex-col gap-1 asd">
-                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Título del Video *</label>
-                            <input name="videoTitle" type="text" required placeholder="Ej. ¿Cómo registrar asistencia?" className="p-3 w-full rounded-xl border border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003366] transition-all font-medium text-sm" />
-                        </div>
-
-                        <div className="flex flex-col gap-1">
-                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Descripción (Opcional)</label>
-                            <input name="videoDesc" type="text" placeholder="Breve descripción del proceso." className="p-3 w-full rounded-xl border border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003366] transition-all font-medium text-sm" />
-                        </div>
-
-                        <div className="flex flex-col gap-1">
-                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Enlace / Código de Inserción (iframe) *</label>
-                            <textarea
-                                name="embedCode"
-                                required
-                                placeholder='Pega aquí el enlace de inserción de SharePoint (ej. <iframe src="https://universidadmag-my.sharepoint.com/... "></iframe>)'
-                                className="p-3 w-full rounded-xl border border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003366] transition-all min-h-[100px] resize-y text-sm font-mono"
-                            ></textarea>
-                            <span className="text-xs text-gray-400 mt-1">Sugerencia: Abre el video en OneDrive/SharePoint, haz clic en "Incrustar" o "Compartir", y copia todo el bloque de código o el enlace web que te da.</span>
-                        </div>
-
-                        <div className="mt-2">
-                            <button type="submit" className="px-6 py-3 bg-[#2D8CFF] hover:bg-blue-600 text-white font-bold rounded-xl transition-colors cursor-pointer shadow-md inline-flex items-center gap-2 border-none">
-                                <span>➕ Guardar Mini-Clip</span>
-                            </button>
-                        </div>
-                    </form>
-
-                    {/* Lista de Mini-Clips Existentes */}
-                    {miniclipsList.length > 0 && (
-                        <div className="mt-10 border-t border-gray-100 dark:border-slate-700 pt-6">
-                            <h5 className="m-0 mb-4 text-[#003366] dark:text-blue-400 font-bold text-lg">Videos Actuales ({miniclipsList.length})</h5>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {miniclipsList.map(clip => (
-                                    <div key={clip.id} className="bg-gray-50 dark:bg-slate-900/50 p-4 rounded-xl border border-gray-200 dark:border-slate-700 flex flex-col justify-between">
-                                        <div>
-                                            <h6 className="m-0 font-bold text-[#1A1A1A] dark:text-white text-sm line-clamp-2" title={clip.title}>{clip.title}</h6>
-                                            {clip.description && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">{clip.description}</p>}
-                                        </div>
-                                        <button
-                                            onClick={async () => {
-                                                if (window.confirm(`¿Estás seguro de eliminar el video "${clip.title}"?`)) {
-                                                    try {
-                                                        const secretAuth = import.meta.env.VITE_FIREBASE_SECRET;
-                                                        const dbBaseUrl = import.meta.env.VITE_FIREBASE_DB_BASE_URL;
-                                                        await fetch(`${dbBaseUrl}/miniclips/${clip.id}.json?auth=${secretAuth}`, {
-                                                            method: 'DELETE'
-                                                        });
-                                                        setMiniclipsList(prev => prev.filter(c => c.id !== clip.id));
-                                                        alert("🗑️ Video eliminado.");
-                                                    } catch (err) {
-                                                        alert("Error al eliminar.");
-                                                    }
-                                                }
-                                            }}
-                                            className="mt-4 px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 text-xs font-bold rounded-lg transition-colors border-none cursor-pointer self-start"
-                                        >
-                                            Eliminar Video
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
                 </div>
             </div>
         </div>
