@@ -145,12 +145,13 @@ const App = () => {
     setSelectedCursoIdx(0);
   };
 
-  const [isAdminAuth, setIsAdminAuth] = useState(false);
+  const [isAdminAuth, setIsAdminAuth] = useState(localStorage.getItem('isAdminAuth') === 'true');
 
   const handleLogin = (e) => {
     e.preventDefault();
     if (passInput === ADMIN_PASS) {
       setIsAdminAuth(true);
+      localStorage.setItem('isAdminAuth', 'true');
       setView('admin');
     }
     else alert("Contraseña incorrecta");

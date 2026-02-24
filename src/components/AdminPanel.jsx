@@ -538,13 +538,15 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                     <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-100 dark:border-slate-700 transition-colors overflow-hidden flex flex-col h-[600px]">
                         <div className="flex justify-between items-center flex-wrap gap-4 mb-6">
                             <h4 className="m-0 text-[#003366] dark:text-blue-400 font-bold text-xl">👥 Directorio Sincronizado ({docentesList.length})</h4>
-                            <input
-                                type="text"
-                                placeholder="Buscar docente o cédula..."
-                                value={filterDocente}
-                                onChange={(e) => setFilterDocente(e.target.value)}
-                                className="p-3 w-full md:w-64 rounded-xl border border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003366] transition-all font-medium text-sm"
-                            />
+                            <form onSubmit={(e) => e.preventDefault()}>
+                                <input
+                                    type="text"
+                                    placeholder="Buscar docente o cédula..."
+                                    value={filterDocente}
+                                    onChange={(e) => setFilterDocente(e.target.value)}
+                                    className="p-3 w-full md:w-64 rounded-xl border border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003366] transition-all font-medium text-sm"
+                                />
+                            </form>
                         </div>
 
                         <div className="flex-1 overflow-y-auto custom-scrollbar">
