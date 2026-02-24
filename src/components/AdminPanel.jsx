@@ -134,18 +134,25 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                 const idxFFin = findCol(['FECHA F', 'FINAL', 'F. FIN', 'FFIN']);
 
                 // Identificamos las columnas de SEMANA 1 a 16 estrictamente dinámicas
+                // Buscamos de DERECHA a IZQUIERDA en los headers originales.
+                // Esto es crucial porque el Excel tiene columnas resumen con palabras clave
+                // al principio, y luego las columnas detalladas reales al final de la hoja.
                 const semanasColIndexes = [];
                 for (let s = 1; s <= 16; s++) {
                     let foundIdx = -1;
-                    for (const [header, idx] of Object.entries(colMap)) {
+                    for (let i = headers.length - 1; i >= 0; i--) {
+                        if (headers[i] === undefined || headers[i] === null) continue;
+                        const header = String(headers[i]).trim().toUpperCase();
+
                         // Regex estricto para evitar falsos positivos (ej. que "S1" no haga match con "NOTAS1")
-                        // Permite: "SEMANA 1", "SEMANA1", "SEM 1", "S1" aislados, o "1", "01"
+                        // Permite: "SEMANA 1", "SEMANA1", "SEM 1", "S1" aislados
                         const regexStarts = new RegExp(`^(SEMANA|SEM|S)\\s*0?${s}$`);
                         const regexIncludes = new RegExp(`\\b(SEMANA|SEM)\\s*0?${s}\\b`);
 
-                        if (regexStarts.test(header) || regexIncludes.test(header) || header === String(s) || header === `0${s}`) {
-                            foundIdx = idx;
-                            break;
+                        // Quitamos la condición de número exacto para evitar falsos positivos con otras columnas
+                        if (regexStarts.test(header) || regexIncludes.test(header)) {
+                            foundIdx = i;
+                            break; // Rompemos al encontrar el primero desde la derecha (último en el Excel)
                         }
                     }
                     semanasColIndexes.push(foundIdx);
@@ -540,7 +547,7 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                                                     {act.nombreDocente}
                                                 </div>
                                                 <span className={`text - [9px] font - bold px - 1.5 py - 0.5 rounded - full uppercase ml - 2 flex - shrink - 0 ${act.status === 'past' ? 'bg-gray-200 text-gray-600' :
-                                                        act.status === 'present' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                                                    act.status === 'present' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
                                                     } `}>
                                                     {statusText}
                                                 </span>
@@ -553,8 +560,8 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                                                 <a href={act.zoomLink} target="_blank" rel="noreferrer"
                                                     onClick={(e) => { e.stopPropagation(); registrarLog('admin', `Unido a clase de ${act.nombreDocente} (Sem ${act.numSemana})`); }}
                                                     className={`inline - flex items - center justify - center gap - 1.5 px - 3 py - 1.5 rounded - lg text - xs font - bold text - white transition - colors cursor - pointer no - underline ${act.status === 'past' ? 'bg-gray-400 hover:bg-gray-500' :
-                                                            act.status === 'present' ? 'bg-[#25D366] hover:bg-green-600 shadow-[0_2px_10px_rgba(37,211,102,0.2)]' :
-                                                                'bg-[#2D8CFF] hover:bg-blue-600'
+                                                        act.status === 'present' ? 'bg-[#25D366] hover:bg-green-600 shadow-[0_2px_10px_rgba(37,211,102,0.2)]' :
+                                                            'bg-[#2D8CFF] hover:bg-blue-600'
                                                         } `}
                                                 >
                                                     🎥 Entrar
