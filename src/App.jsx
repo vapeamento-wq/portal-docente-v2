@@ -9,6 +9,7 @@ import LoginModal from './components/LoginModal';
 import AdminPanel from './components/AdminPanel';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { registrarLog, procesarCursos, formatoFechaHora, URL_SCRIPT_LOGS } from './utils/helpers';
 import { initializeApp } from "firebase/app";
 import { getAnalytics, logEvent } from "firebase/analytics";
@@ -399,6 +400,7 @@ const App = () => {
         </a>
       </div>
       <Analytics />
+      <SpeedInsights />
     </div>
   );
 };
