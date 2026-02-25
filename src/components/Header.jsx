@@ -28,9 +28,9 @@ const Header = ({ onReset, docente, searchTerm, setSearchTerm, onSearch, loading
               target="_blank"
               rel="noreferrer"
               onClick={(e) => { e.stopPropagation(); trackAppEvent("click_centro_ayuda"); }}
-              className="inline-flex items-center gap-1.5 bg-[#db9b32]/20 hover:bg-[#db9b32]/40 text-[#db9b32] px-4 py-1.5 rounded-full text-xs font-bold transition-colors border border-[#db9b32]/30 cursor-pointer no-underline"
+              className="inline-flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white px-4 py-1.5 rounded-full text-xs font-bold transition-colors border border-white/20 cursor-pointer no-underline"
             >
-              🎬 Centro de Ayuda
+              🎬 Mini Clips Campus
             </a>
           </div>
         </div>
