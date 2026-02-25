@@ -37,7 +37,7 @@ try {
     const app = initializeApp(firebaseConfig);
     analytics = getAnalytics(app);
     remoteConfig = getRemoteConfig(app);
-    remoteConfig.settings.minimumFetchIntervalMillis = 3600000; // 1 hora
+    remoteConfig.settings.minimumFetchIntervalMillis = 0; // Cambiado a 0 para pruebas instantáneas
     remoteConfig.defaultConfig = {
       primary_color: "#db9b32",
       show_whatsapp_button: true,
