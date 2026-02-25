@@ -1,12 +1,12 @@
 import React from 'react';
 import { trackAppEvent } from '../App';
 
-const Header = ({ onReset, docente, searchTerm, setSearchTerm, onSearch, loading }) => {
+const Header = ({ onReset, docente, searchTerm, setSearchTerm, onSearch, loading, headerTitle }) => {
   return (
     <header className="bg-[#003366] py-6 relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-5 flex flex-col md:flex-row justify-between items-center relative z-10 gap-4 md:gap-0">
         <div className="text-center md:text-left flex flex-col justify-center items-center md:items-start" onClick={onReset}>
-          <h1 className="m-0 text-[#db9b32] text-2xl md:text-3xl font-extrabold tracking-tighter cursor-pointer">PORTAL DOCENTES</h1>
+          <h1 className="m-0 text-[#db9b32] text-2xl md:text-3xl font-extrabold tracking-tighter cursor-pointer">{headerTitle || "PORTAL DOCENTES"}</h1>
           <h2 className="mt-1 text-xs md:text-sm text-white/80 font-medium tracking-[2px] uppercase cursor-pointer">CREO - UNIVERSIDAD DEL MAGDALENA</h2>
 
           <div className="mt-3 flex flex-wrap justify-center md:justify-start gap-2">

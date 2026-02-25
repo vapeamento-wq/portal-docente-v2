@@ -13,6 +13,7 @@ import { SpeedInsights } from '@vercel/speed-insights/react';
 import { registrarLog, procesarCursos, formatoFechaHora, URL_SCRIPT_LOGS } from './utils/helpers';
 import { initializeApp } from "firebase/app";
 import { getAnalytics, logEvent } from "firebase/analytics";
+import { getRemoteConfig, fetchAndActivate, getBoolean, getString } from "firebase/remote-config";
 
 // --- ⚡ CONFIGURACIÓN MAESTRA (V21.0 - CON LOGS DE ERROR Y ANALYTICS) ---
 
@@ -29,12 +30,20 @@ const firebaseConfig = {
 };
 
 let analytics = null;
+let remoteConfig = null;
 try {
   // Solo iniciar si measurementId existe.
   if (firebaseConfig.measurementId && typeof window !== "undefined") {
     const app = initializeApp(firebaseConfig);
     analytics = getAnalytics(app);
-    console.log("📊 Google Analytics Inicializado");
+    remoteConfig = getRemoteConfig(app);
+    remoteConfig.settings.minimumFetchIntervalMillis = 3600000; // 1 hora
+    remoteConfig.defaultConfig = {
+      primary_color: "#db9b32",
+      show_whatsapp_button: true,
+      header_title: "PORTAL DOCENTE CREO"
+    };
+    console.log("📊 Google Analytics y Remote Config Inicializados");
   }
 } catch (e) {
   console.warn("⚠️ Analytics no pudo iniciar correctamente:", e);
@@ -61,6 +70,34 @@ const fetcher = (...args) => fetch(...args).then(res => res.json());
 const App = () => {
   const [view, setView] = useState('user');
   const [passInput, setPassInput] = useState('');
+
+  // Remote Config State
+  const [rcVals, setRcVals] = useState({
+    showWhatsapp: true,
+    primaryColor: '#db9b32',
+    headerTitle: 'PORTAL DOCENTE CREO'
+  });
+
+  useEffect(() => {
+    if (remoteConfig) {
+      fetchAndActivate(remoteConfig)
+        .then(() => {
+          const showWp = getBoolean(remoteConfig, 'show_whatsapp_button');
+          const pColor = getString(remoteConfig, 'primary_color');
+          const hTitle = getString(remoteConfig, 'header_title');
+
+          setRcVals({
+            showWhatsapp: showWp,
+            primaryColor: pColor,
+            headerTitle: hTitle
+          });
+
+          // Aplicar la variable de entorno a CSS para uso posterior
+          document.documentElement.style.setProperty('--primary-color', pColor);
+        })
+        .catch((err) => console.warn('⚠️ Error remoto:', err));
+    }
+  }, []);
 
   // Estados Usuario
   const [searchTerm, setSearchTerm] = useState('');
@@ -292,6 +329,7 @@ const App = () => {
         setSearchTerm={setSearchTerm}
         onSearch={handleSearch}
         loading={isLoading}
+        headerTitle={rcVals.headerTitle}
       />
 
       {anuncio && view !== 'admin' && (
@@ -387,18 +425,20 @@ const App = () => {
       </main>
 
       {/* Floating Action Buttons */}
-      <div className="fixed bottom-8 right-8 flex flex-col gap-4 z-50">
-        <a
-          href={`https://wa.me/${WHATSAPP_NUMBER}`}
-          target="_blank"
-          rel="noreferrer"
-          onClick={() => trackAppEvent("click_whatsapp_support", { location: "floating_button" })}
-          className="bg-[#25D366] text-white w-14 h-14 rounded-full font-bold shadow-[0_10px_30px_rgba(37,211,102,0.4)] hover:scale-110 transition-transform flex items-center justify-center text-2xl no-underline"
-          title="Soporte por WhatsApp"
-        >
-          💬
-        </a>
-      </div>
+      {rcVals.showWhatsapp && (
+        <div className="fixed bottom-8 right-8 flex flex-col gap-4 z-50">
+          <a
+            href={`https://wa.me/${WHATSAPP_NUMBER}`}
+            target="_blank"
+            rel="noreferrer"
+            onClick={() => trackAppEvent("click_whatsapp_support", { location: "floating_button" })}
+            className="bg-[#25D366] text-white w-14 h-14 rounded-full font-bold shadow-[0_10px_30px_rgba(37,211,102,0.4)] hover:scale-110 transition-transform flex items-center justify-center text-2xl no-underline"
+            title="Soporte por WhatsApp"
+          >
+            💬
+          </a>
+        </div>
+      )}
       <Analytics />
       <SpeedInsights />
     </div>
