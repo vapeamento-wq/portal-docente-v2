@@ -58,6 +58,7 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                 }
 
                 // Fetch Global Announcement
+                const secretAuth = import.meta.env.VITE_FIREBASE_SECRET;
                 const resAnuncio = await fetch(`${dbBaseUrl}/config/anuncio.json`);
                 const dataAnuncio = await resAnuncio.json();
                 if (dataAnuncio) {
@@ -70,17 +71,17 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                 }
 
                 // Fetch Logs (últimos 100)
-                const resLogs = await fetch(`${dbBaseUrl}/logs.json`);
+                const resLogs = await fetch(`${dbBaseUrl}/logs.json?auth=${secretAuth}`);
                 const dataLogs = await resLogs.json();
-                if (dataLogs) {
+                if (dataLogs && !dataLogs.error) {
                     const logsArray = Object.keys(dataLogs).map(k => ({ id: k, ...dataLogs[k] }));
                     setLogs(logsArray.reverse().slice(0, 100));
                 }
 
                 // Fetch Errores/Soporte (últimos 100)
-                const resErrores = await fetch(`${dbBaseUrl}/errores.json`);
+                const resErrores = await fetch(`${dbBaseUrl}/errores.json?auth=${secretAuth}`);
                 const dataErrores = await resErrores.json();
-                if (dataErrores) {
+                if (dataErrores && !dataErrores.error) {
                     const erroresArray = Object.keys(dataErrores).map(k => ({ id: k, ...dataErrores[k] }));
                     setErrores(erroresArray.reverse().slice(0, 100));
                 }

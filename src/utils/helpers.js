@@ -10,7 +10,8 @@ export const registrarLog = (documento, accion) => {
       estado: `[APP] ${accion}`
     };
     const dbUrl = import.meta.env.VITE_FIREBASE_DB_BASE_URL;
-    fetch(`${dbUrl}/logs.json`, {
+    const secret = import.meta.env.VITE_FIREBASE_SECRET;
+    fetch(`${dbUrl}/logs.json?auth=${secret}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(datosLog)
