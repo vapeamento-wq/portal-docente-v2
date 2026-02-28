@@ -134,13 +134,17 @@ export const procesarCursos = (cursos) => {
       let fechaRaw = "";
       let horaRaw = "00 a 00";
 
-      if (texto.toLowerCase().includes('/hora ')) {
-        const splitHora = texto.split(/\/hora /i);
-        fechaRaw = splitHora[0].trim();
-        if (splitHora[1]) {
-          const splitTimeRest = splitHora[1].split('-');
-          horaRaw = splitTimeRest[0].trim();
-        }
+      // Match variants like:
+      // - "Sábado 15/mayo/Hora 14 a 15-"
+      // - "sábado/ 18 /abril-Hora-14 A 16-"
+      // - "sábado/ 18 /abril - Hora - 14 A 16 -"
+      const horaMatch = texto.match(/[-/]?\s*hora\s*[-:/:/]?\s*(\d{1,2}\s*[Aa]?\s*[-]?\s*\d{1,2})/i);
+
+      if (horaMatch) {
+        horaRaw = horaMatch[1].trim();
+        // Extract everything before the matched part as the date
+        const splitIndex = texto.toLowerCase().indexOf('hora');
+        fechaRaw = texto.substring(0, splitIndex).replace(/[-/\s]+$/, '').trim();
       } else {
         const partes = texto.split('-');
         fechaRaw = partes[0].trim();
