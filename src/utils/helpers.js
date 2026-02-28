@@ -53,10 +53,7 @@ const MESES = {
 
 const parseCourseDate = (fechaStr, horaStr) => {
   try {
-    // fechaStr format: "21 / febrero" (Year is handled separately or assumed current/next for logic)
-    // Actually the input raw string has Year: "2026 / 21 / febrero"
-
-    // Clean up string: "2026 / 21 / febrero" -> ["2026", "21", "febrero"]
+    // Clean up string: "2026 / 21 / febrero" or "Sábado 13/abril"
     const parts = fechaStr.split('/').map(p => p.trim());
 
     let year = new Date().getFullYear();
@@ -64,19 +61,24 @@ const parseCourseDate = (fechaStr, horaStr) => {
     let month = null;
 
     parts.forEach(p => {
-      const num = parseInt(p);
-      if (!isNaN(num)) {
+      // Intenta extraer un número (año o día)
+      const numMatch = p.match(/\d+/);
+      if (numMatch) {
+        const num = parseInt(numMatch[0]);
         if (num > 2000) {
           year = num;
         } else if (num >= 1 && num <= 31 && !p.toLowerCase().includes('semana')) {
           day = num;
         }
-      } else {
-        const m = MESES[p.toLowerCase()];
-        if (m !== undefined) {
-          month = m;
-        }
       }
+
+      // Intenta extraer el mes
+      const words = p.toLowerCase().match(/[a-z]+/g) || [];
+      words.forEach(w => {
+        if (MESES[w] !== undefined) {
+          month = MESES[w];
+        }
+      });
     });
 
     if (day !== null && month === null) {
@@ -87,17 +89,17 @@ const parseCourseDate = (fechaStr, horaStr) => {
 
     if (day === null || month === null) return null;
 
-    // Hora: "11 a 13" o "7 A 9" -> Take start hour "11" o "7"
+    // Hora
     let hour = 9; // Default
     if (horaStr) {
       const horaLimpia = horaStr.toLowerCase().trim();
-      // Only parse as 'a' range if it actually matches "number a number" or similar
-      const matchA = horaLimpia.match(/^(\d+)\s*a\s*(\d+)$/);
+      const matchA = horaLimpia.match(/(\d+)\s*a\s*(\d+)/);
+      const matchVarios = horaLimpia.match(/(\d+)/);
+
       if (matchA) {
         hour = parseInt(matchA[1], 10);
-      } else {
-        const num = parseInt(horaLimpia);
-        if (!isNaN(num)) hour = num;
+      } else if (matchVarios) {
+        hour = parseInt(matchVarios[1], 10);
       }
     }
 
@@ -129,14 +131,21 @@ export const procesarCursos = (cursos) => {
       if (!texto || texto.length < 5 || texto.startsWith("-") || texto.toLowerCase().includes("pendiente")) return;
 
       // --- 1. Parsing Logic ---
-      const partes = texto.split('-');
-      // Example part[0]: "2026 / 21 / febrero"
-      let fechaRaw = partes[0].trim();
+      let fechaRaw = "";
+      let horaRaw = "00 a 00";
 
-      // Extract Hour: "11 a 13" -> part[1] typically
-      // But data format varies. Example: "2026 / 21 / febrero-11 a 13- ..."
-      // partes[1] is usually hour range if standard format.
-      let horaRaw = partes[1] ? partes[1].trim() : "00 a 00";
+      if (texto.toLowerCase().includes('/hora ')) {
+        const splitHora = texto.split(/\/hora /i);
+        fechaRaw = splitHora[0].trim();
+        if (splitHora[1]) {
+          const splitTimeRest = splitHora[1].split('-');
+          horaRaw = splitTimeRest[0].trim();
+        }
+      } else {
+        const partes = texto.split('-');
+        fechaRaw = partes[0].trim();
+        horaRaw = partes[1] ? partes[1].trim() : "00 a 00";
+      }
 
       // Display Strings
       let fechaDisplay = fechaRaw.replace(/^202[0-9]\s*\/\s*/, '').replace(/\s*\/\s*/g, ' / '); // "21 / febrero"
