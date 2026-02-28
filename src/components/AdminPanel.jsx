@@ -22,7 +22,7 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
     const [mantenimientoActivo, setMantenimientoActivo] = useState(false);
     const [logs, setLogs] = useState([]);
     const [activeTab, setActiveTab] = useState('radar'); // 'radar', 'logs'
-    const [programaSeleccionado, setProgramaSeleccionado] = useState('SST'); // Nuevo estado para el programa
+    const [programaSeleccionado, setProgramaSeleccionado] = useState(''); // Obligar a seleccionar
 
     useEffect(() => {
         // Fetch current teachers on mount
@@ -261,7 +261,7 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                 let finalDB = {};
                 try {
                     const secretAuth = import.meta.env.VITE_FIREBASE_SECRET;
-                    const resCurrent = await fetch(`${FIREBASE_DB_URL}?auth=${secretAuth}`);
+                    const resCurrent = await fetch(`${FIREBASE_DB_URL}?auth=${secretAuth}`, { cache: 'no-store' }); // Evitar caché del navegador
                     const currentData = await resCurrent.json();
 
                     if (currentData) {
@@ -415,6 +415,22 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
         setRadarHoy(activos);
     }, [docentesListFull]);
 
+    // Calcular estadísticas de programas cargados
+    const programStats = React.useMemo(() => {
+        const stats = {};
+        docentesListFull.forEach(docente => {
+            if (docente.cursos) {
+                docente.cursos.forEach(c => {
+                    const prog = c.programa || 'Sin Etiqueta';
+                    if (!stats[prog]) stats[prog] = { docentesIDs: new Set(), cursos: 0 };
+                    stats[prog].docentesIDs.add(docente.idReal);
+                    stats[prog].cursos++;
+                });
+            }
+        });
+        return stats;
+    }, [docentesListFull]);
+
     const handleGuardarAnuncio = async (e) => {
         e.preventDefault();
         setGuardandoAnuncio(true);
@@ -466,8 +482,9 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                                 value={programaSeleccionado}
                                 onChange={(e) => setProgramaSeleccionado(e.target.value)}
                                 disabled={uploading}
-                                className="w-full p-2.5 rounded-xl border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm font-bold text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#007bff]"
+                                className={`w-full p-2.5 rounded-xl border ${!programaSeleccionado ? 'border-red-400 ring-1 ring-red-400' : 'border-gray-300 dark:border-slate-600'} bg-white dark:bg-slate-800 text-sm font-bold text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#007bff]`}
                             >
+                                <option value="" disabled>-- Selecciona el programa primero --</option>
                                 <option value="SST">Seguridad y Salud en el Trabajo (SST)</option>
                                 <option value="Administración Pública">Administración Pública</option>
                             </select>
@@ -477,14 +494,17 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                             type="file"
                             accept=".xlsx, .xls"
                             onChange={handleFileUpload}
-                            disabled={uploading}
-                            className="block mx-auto mb-4 text-sm text-gray-500 dark:text-gray-400
+                            disabled={uploading || !programaSeleccionado}
+                            className={`block mx-auto mb-4 text-sm 
                                 file:mr-4 file:py-2 file:px-4
                                 file:rounded-full file:border-0
                                 file:text-sm file:font-semibold
-                                file:bg-blue-50 file:text-blue-700
-                                hover:file:bg-blue-100 transition-colors cursor-pointer disabled:cursor-not-allowed dark:file:bg-blue-900/50 dark:file:text-blue-300"
+                                transition-colors ${!programaSeleccionado ? 'opacity-50 cursor-not-allowed file:bg-gray-200 file:text-gray-500 text-gray-400' : 'file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer text-gray-500 dark:file:bg-blue-900/50 dark:file:text-blue-300 dark:text-gray-400'}`}
                         />
+
+                        {!programaSeleccionado && (
+                            <p className="text-xs text-red-500 font-bold mb-2">Paso 1: Selecciona un programa para habilitar la carga.</p>
+                        )}
 
                         {uploading && (
                             <div className="flex justify-center items-center gap-2 mb-4 text-[#007bff] dark:text-blue-400 font-bold text-sm">
@@ -524,10 +544,30 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
 
                     {/* Existing Tools (Excel, Firebase) */}
                     <div className="flex flex-col gap-5">
+                        <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-gray-100 dark:border-slate-700 transition-colors shadow-sm">
+                            <h4 className="m-0 mb-4 text-[#003366] dark:text-blue-400 font-bold text-md flex items-center justify-between">
+                                Bases de Datos Cargadas
+                            </h4>
+                            <div className="space-y-3">
+                                {Object.keys(programStats).length === 0 ? (
+                                    <div className="text-sm text-gray-400 italic">No hay programas cargados.</div>
+                                ) : (
+                                    Object.keys(programStats).map(prog => (
+                                        <div key={prog} className={`p-3 rounded-lg border ${prog === 'SST' ? 'bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800/50' : prog === 'Administración Pública' ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800/50' : 'bg-gray-50 border-gray-200 dark:bg-slate-700/50 dark:border-slate-600'}`}>
+                                            <div className="font-bold text-sm text-gray-800 dark:text-gray-200 mb-1">{prog === 'SST' ? 'SST' : prog}</div>
+                                            <div className="flex gap-4 text-xs font-medium">
+                                                <span className="text-gray-600 dark:text-gray-400">👤 {programStats[prog].docentesIDs.size} Profes</span>
+                                                <span className="text-gray-600 dark:text-gray-400">📚 {programStats[prog].cursos} Cursos</span>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+
                         <div className="bg-gray-50 dark:bg-slate-800/50 p-5 rounded-2xl flex flex-col gap-4 border border-transparent dark:border-slate-700 transition-colors justify-center">
                             <h4 className="m-0 font-bold dark:text-gray-200 text-lg">Accesos Rápidos</h4>
                             <a href={URL_TU_EXCEL_MAESTRO} target="_blank" rel="noreferrer" className="block p-4 bg-[#27ae60] text-white text-center rounded-xl no-underline font-bold hover:bg-[#219653] transition-colors shadow-sm">Excel Maestro</a>
-                            <a href={URL_FIREBASE_CONSOLE} target="_blank" rel="noreferrer" className="block p-4 bg-[#f39c12] text-white text-center rounded-xl no-underline font-bold hover:bg-[#d68910] transition-colors shadow-sm">Firebase Console</a>
                         </div>
                     </div>
                 </div>
