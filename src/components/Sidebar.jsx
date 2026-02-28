@@ -38,11 +38,21 @@ const Sidebar = ({ docente, selectedCursoIdx, setSelectedCursoIdx }) => {
                     >
                         <div className={`font-bold text-[0.95rem] transition-colors ${selectedCursoIdx === i ? 'text-[#003366] dark:text-blue-300' : 'text-[#003366] dark:text-gray-300'}`}>{c.materia}</div>
                         <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 transition-colors">{c.horario || 'Ver Cronograma'}</div>
-                        <div className={`text-[0.65rem] px-2 py-0.5 rounded-md mt-2 font-bold inline-block transition-colors ${selectedCursoIdx === i
-                            ? 'bg-[#003366] text-white dark:bg-blue-600'
-                            : 'bg-gray-200 text-gray-600 dark:bg-slate-700 dark:text-gray-400 group-hover:bg-gray-300 dark:group-hover:bg-slate-600'
-                            }`}>
-                            {c.bloque}
+                        <div className="flex gap-2 items-center flex-wrap">
+                            <div className={`text-[0.65rem] px-2 py-0.5 rounded-md mt-2 font-bold inline-block transition-colors ${selectedCursoIdx === i
+                                ? 'bg-[#003366] text-white dark:bg-blue-600'
+                                : 'bg-gray-200 text-gray-600 dark:bg-slate-700 dark:text-gray-400 group-hover:bg-gray-300 dark:group-hover:bg-slate-600'
+                                }`}>
+                                {c.bloque}
+                            </div>
+                            {c.programa && (
+                                <div className={`text-[0.65rem] px-2 py-0.5 rounded-md mt-2 font-bold inline-block transition-colors ${c.programa === 'SST'
+                                        ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300 border border-orange-200 dark:border-orange-800/50'
+                                        : 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50'
+                                    }`}>
+                                    {c.programa === 'SST' ? 'Admin. en SST' : 'Admin. Pública'}
+                                </div>
+                            )}
                         </div>
                     </motion.button>
                 ))}

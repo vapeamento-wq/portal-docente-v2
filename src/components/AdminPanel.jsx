@@ -21,8 +21,8 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
     const [guardandoAnuncio, setGuardandoAnuncio] = useState(false);
     const [mantenimientoActivo, setMantenimientoActivo] = useState(false);
     const [logs, setLogs] = useState([]);
-    const [errores, setErrores] = useState([]);
-    const [activeTab, setActiveTab] = useState('radar'); // 'radar', 'logs', 'errores'
+    const [activeTab, setActiveTab] = useState('radar'); // 'radar', 'logs'
+    const [programaSeleccionado, setProgramaSeleccionado] = useState('SST'); // Nuevo estado para el programa
 
     useEffect(() => {
         // Fetch current teachers on mount
@@ -76,14 +76,6 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                 if (dataLogs && !dataLogs.error) {
                     const logsArray = Object.keys(dataLogs).map(k => ({ id: k, ...dataLogs[k] }));
                     setLogs(logsArray.reverse().slice(0, 100));
-                }
-
-                // Fetch Errores/Soporte (últimos 100)
-                const resErrores = await fetch(`${dbBaseUrl}/errores.json?auth=${secretAuth}`);
-                const dataErrores = await resErrores.json();
-                if (dataErrores && !dataErrores.error) {
-                    const erroresArray = Object.keys(dataErrores).map(k => ({ id: k, ...dataErrores[k] }));
-                    setErrores(erroresArray.reverse().slice(0, 100));
                 }
 
             } catch (err) {
@@ -241,7 +233,9 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                         }
                     }
 
-                    // Insertar en la base de datos
+                    // Insertar en el diccionario local, agregando la etiqueta del programa
+                    curso.programa = programaSeleccionado;
+
                     if (!docentesDB[documento]) {
                         docentesDB[documento] = {
                             idReal: documento,
@@ -253,16 +247,66 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                     countCursos++;
                 }
 
-                const countDocentes = Object.keys(docentesDB).length;
+                // --- NUEVO: Fusión (Merge) con datos preexistentes ---
+                const countDocentesNuevos = Object.keys(docentesDB).length;
 
-                if (countDocentes === 0) {
+                if (countDocentesNuevos === 0) {
                     setUploading(false);
-                    setUploadResult('⚠️ El archivo no contiene datos válidos o el formato no coincide.');
+                    setUploadResult(`⚠️ El archivo de ${programaSeleccionado} no contiene datos válidos o el formato no coincide.`);
                     return;
                 }
 
-                setUploadResult(`🚀 Subiendo ${countDocentes} docentes y ${countCursos} cursos a Firebase...`);
+                setUploadResult(`🔄 Descargando y fusionando datos existentes para no sobreescribir...`);
 
+                let finalDB = {};
+                try {
+                    const secretAuth = import.meta.env.VITE_FIREBASE_SECRET;
+                    const resCurrent = await fetch(`${FIREBASE_DB_URL}?auth=${secretAuth}`);
+                    const currentData = await resCurrent.json();
+
+                    if (currentData) {
+                        finalDB = { ...currentData };
+                    }
+                } catch (err) {
+                    console.warn("No se pudo obtener la BD actual o está vacía, se creará una nueva.", err);
+                }
+
+                // 2. Limpiar los cursos antiguos que pertenecían AL MISMO PROGRAMA que estamos subiendo,
+                // para evitar duplicados si subimos el mismo archivo 2 veces.
+                // Los cursos de otros programas (ej: si subimos SST, preservamos Admin Pública) se mantienen.
+                Object.keys(finalDB).forEach(docenteId => {
+                    const docenteActual = finalDB[docenteId];
+                    if (docenteActual && docenteActual.cursos) {
+                        docenteActual.cursos = docenteActual.cursos.filter(
+                            curso => curso.programa !== programaSeleccionado
+                        );
+                    }
+                });
+
+                // 3. Insertar los nuevos cursos (del programa actualmente subido)
+                Object.keys(docentesDB).forEach(docenteId => {
+                    const docenteNuevo = docentesDB[docenteId];
+                    if (!finalDB[docenteId]) {
+                        // Si el docente no existía, lo agregamos completo
+                        finalDB[docenteId] = docenteNuevo;
+                    } else {
+                        // Si ya existía, añadimos sus nuevos cursos
+                        finalDB[docenteId].cursos = [...finalDB[docenteId].cursos, ...docenteNuevo.cursos];
+                        // Actualizamos el nombre en caso de que esté más completo en el nuevo Excel
+                        finalDB[docenteId].nombre = docenteNuevo.nombre;
+                    }
+                });
+
+                // 4. Limpiar docentes que se quedaron sin cursos después del filtrado
+                Object.keys(finalDB).forEach(docenteId => {
+                    if (!finalDB[docenteId].cursos || finalDB[docenteId].cursos.length === 0) {
+                        delete finalDB[docenteId];
+                    }
+                });
+
+                const countDocentesTotales = Object.keys(finalDB).length;
+
+                setUploadResult(`🚀 Subiendo base fusionada: ${countDocentesTotales} docentes en total a Firebase...`);
                 // Sincronizar directo a Firebase con autenticación secreta
                 const secretAuth = import.meta.env.VITE_FIREBASE_SECRET;
                 const res = await fetch(`${FIREBASE_DB_URL}?auth=${secretAuth}`, {
@@ -272,9 +316,9 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                 });
 
                 if (res.ok) {
-                    setUploadResult(`✅ ¡Base de datos de Firebase actualizada con éxito!\nDocentes: ${countDocentes} \nCursos: ${countCursos} `);
+                    setUploadResult(`✅ ¡Fusión exitosa!\n- Programa actualizado: ${programaSeleccionado}\n- Cursos nuevos agregados: ${countCursos}\n- Total de docentes en la plataforma: ${countDocentesTotales}`);
                 } else {
-                    setUploadResult(`❌ Error de red al sincronizar con Firebase: ${res.statusText} `);
+                    setUploadResult(`❌ Error de red al sincronizar con Firebase: ${res.statusText}`);
                 }
             } catch (err) {
                 console.error(err);
@@ -414,7 +458,20 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                     {/* NUEVO: Subida de Excel Mágico */}
                     <div className="bg-[#f5f9ff] dark:bg-blue-900/20 p-6 rounded-2xl border-2 border-dashed border-[#007bff] text-center flex flex-col justify-center transition-colors">
                         <h3 className="m-0 mb-3 text-[#1e40af] dark:text-blue-300 text-xl font-bold">📥 Actualizar BD (Desde Excel)</h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">Sube el archivo Excel actualizado. El sistema lo analizará y sincronizará en tiempo real con Firebase.</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Sube el archivo Excel de un programa. El sistema lo analizará y lo fusionará sin borrar los demás programas.</p>
+
+                        <div className="mb-4 text-left w-full inline-block">
+                            <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Programa Académico:</label>
+                            <select
+                                value={programaSeleccionado}
+                                onChange={(e) => setProgramaSeleccionado(e.target.value)}
+                                disabled={uploading}
+                                className="w-full p-2.5 rounded-xl border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm font-bold text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#007bff]"
+                            >
+                                <option value="SST">Seguridad y Salud en el Trabajo (SST)</option>
+                                <option value="Administración Pública">Administración Pública</option>
+                            </select>
+                        </div>
 
                         <input
                             type="file"
@@ -545,10 +602,6 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                         onClick={() => setActiveTab('logs')}
                         className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${activeTab === 'logs' ? 'bg-white dark:bg-slate-800 text-[#003366] dark:text-blue-400 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
                     >📝 Logs de Búsqueda</button>
-                    <button
-                        onClick={() => setActiveTab('errores')}
-                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${activeTab === 'errores' ? 'bg-white dark:bg-slate-800 text-[#003366] dark:text-blue-400 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
-                    >🎧 Tickets de Soporte</button>
                 </div>
 
                 {activeTab === 'radar' && (
@@ -721,43 +774,6 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                                                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold ${log.estado?.includes('❌') ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'}`}>
                                                         {log.estado || 'Desconocido'}
                                                     </span>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                )}
-
-                {activeTab === 'errores' && (
-                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-100 dark:border-slate-700 transition-colors fade-in-up">
-                        <div className="flex justify-between items-center mb-6">
-                            <h4 className="m-0 text-[#003366] dark:text-blue-400 font-bold text-xl flex items-center gap-2">🎧 Tickets de Soporte Estudiantil</h4>
-                        </div>
-                        <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-slate-700">
-                            <table className="w-full text-left border-collapse min-w-[700px]">
-                                <thead className="bg-gray-50 dark:bg-slate-900">
-                                    <tr className="border-b border-gray-200 dark:border-slate-700">
-                                        <th className="p-4 text-xs tracking-wider text-gray-500 dark:text-gray-400 uppercase font-bold w-1/4">Fecha del Reporte</th>
-                                        <th className="p-4 text-xs tracking-wider text-gray-500 dark:text-gray-400 uppercase font-bold w-1/4">Estudiante</th>
-                                        <th className="p-4 text-xs tracking-wider text-gray-500 dark:text-gray-400 uppercase font-bold w-1/2">Mensaje del Problema</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {errores.length === 0 ? (
-                                        <tr><td colSpan="3" className="p-6 text-center text-gray-500 dark:text-gray-400">No hay tickets de soporte reportados.</td></tr>
-                                    ) : (
-                                        errores.map(err => (
-                                            <tr key={err.id} className="border-b border-gray-100 dark:border-slate-700/50 hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors">
-                                                <td className="p-4 text-sm text-gray-700 dark:text-gray-300">{err.fecha || 'Sin fecha'}</td>
-                                                <td className="p-4">
-                                                    <div className="text-sm font-bold text-gray-900 dark:text-gray-100">{err.nombre || 'Anónimo'}</div>
-                                                    <div className="text-xs font-mono text-[#003366] dark:text-blue-400 mt-1">{err.codigo || 'Sin código'}</div>
-                                                </td>
-                                                <td className="p-4 text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap leading-relaxed">
-                                                    {err.mensaje || 'Sin mensaje detallado...'}
                                                 </td>
                                             </tr>
                                         ))
