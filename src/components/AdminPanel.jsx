@@ -312,7 +312,7 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                 const res = await fetch(`${FIREBASE_DB_URL}?auth=${secretAuth}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(docentesDB)
+                    body: JSON.stringify(finalDB)
                 });
 
                 if (res.ok) {
