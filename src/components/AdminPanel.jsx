@@ -549,25 +549,19 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                                 Bases de Datos Cargadas
                             </h4>
                             <div className="space-y-3">
-                                {Object.keys(programStats).length === 0 ? (
-                                    <div className="text-sm text-gray-400 italic">No hay programas cargados.</div>
-                                ) : (
-                                    Object.keys(programStats).map(prog => (
-                                        <div key={prog} className={`p-3 rounded-lg border ${prog === 'SST' ? 'bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800/50' : prog === 'Administración Pública' ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800/50' : 'bg-gray-50 border-gray-200 dark:bg-slate-700/50 dark:border-slate-600'}`}>
+                                {['SST', 'Administración Pública'].map(prog => {
+                                    const stats = programStats[prog] || { docentesIDs: new Set(), cursos: 0 };
+                                    return (
+                                        <div key={prog} className={`p-3 rounded-lg border ${prog === 'SST' ? 'bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800/50' : 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800/50'}`}>
                                             <div className="font-bold text-sm text-gray-800 dark:text-gray-200 mb-1">{prog === 'SST' ? 'SST' : prog}</div>
                                             <div className="flex gap-4 text-xs font-medium">
-                                                <span className="text-gray-600 dark:text-gray-400">👤 {programStats[prog].docentesIDs.size} Profes</span>
-                                                <span className="text-gray-600 dark:text-gray-400">📚 {programStats[prog].cursos} Cursos</span>
+                                                <span className="text-gray-600 dark:text-gray-400">👤 {stats.docentesIDs.size} Profes</span>
+                                                <span className="text-gray-600 dark:text-gray-400">📚 {stats.cursos} Cursos</span>
                                             </div>
                                         </div>
-                                    ))
-                                )}
+                                    );
+                                })}
                             </div>
-                        </div>
-
-                        <div className="bg-gray-50 dark:bg-slate-800/50 p-5 rounded-2xl flex flex-col gap-4 border border-transparent dark:border-slate-700 transition-colors justify-center">
-                            <h4 className="m-0 font-bold dark:text-gray-200 text-lg">Accesos Rápidos</h4>
-                            <a href={URL_TU_EXCEL_MAESTRO} target="_blank" rel="noreferrer" className="block p-4 bg-[#27ae60] text-white text-center rounded-xl no-underline font-bold hover:bg-[#219653] transition-colors shadow-sm">Excel Maestro</a>
                         </div>
                     </div>
                 </div>
