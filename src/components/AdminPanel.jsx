@@ -431,6 +431,31 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
         return stats;
     }, [docentesListFull]);
 
+    const handleToggleMantenimiento = async () => {
+        const nuevoEstado = !mantenimientoActivo;
+        setMantenimientoActivo(nuevoEstado);
+
+        try {
+            const secretAuth = import.meta.env.VITE_FIREBASE_SECRET;
+            const dbBaseUrl = import.meta.env.VITE_FIREBASE_DB_BASE_URL;
+            await fetch(`${dbBaseUrl}/config/anuncio.json?auth=${secretAuth}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    texto: anuncioGlobal,
+                    inicio: anuncioInicio || null,
+                    fin: anuncioFin || null,
+                    fechaActualizacion: new Date().toISOString(),
+                    mantenimiento: nuevoEstado
+                })
+            });
+        } catch (err) {
+            console.error(err);
+            setMantenimientoActivo(!nuevoEstado);
+            alert('Error al cambiar el modo mantenimiento.');
+        }
+    };
+
     const handleGuardarAnuncio = async (e) => {
         e.preventDefault();
         setGuardandoAnuncio(true);
@@ -575,7 +600,7 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                         <div className="flex items-center gap-3 bg-gray-50 dark:bg-slate-900/50 p-3 rounded-xl border border-gray-200 dark:border-slate-600">
                             <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Modo Mantenimiento:</span>
                             <button
-                                onClick={() => setMantenimientoActivo(!mantenimientoActivo)}
+                                onClick={handleToggleMantenimiento}
                                 className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none ${mantenimientoActivo ? 'bg-red-500' : 'bg-gray-300 dark:bg-slate-600'}`}
                             >
                                 <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${mantenimientoActivo ? 'translate-x-8' : 'translate-x-1'}`} />
