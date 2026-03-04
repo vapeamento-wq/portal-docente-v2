@@ -6,6 +6,7 @@ import HeroCard from './components/HeroCard';
 import Timeline from './components/Timeline';
 import Toast from './components/Toast';
 import LoginModal from './components/LoginModal';
+import ProgramSelectionModal from './components/ProgramSelectionModal';
 import AdminPanel from './components/AdminPanel';
 import MaintenanceScreen from './components/MaintenanceScreen';
 import NotFoundScreen from './components/NotFoundScreen';
@@ -69,6 +70,12 @@ const App = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchId, setSearchId] = useState(null); // ID real para SWR
   const [docente, setDocente] = useState(null);
+
+  // Estados para Selección de Programa
+  const [programasDisponibles, setProgramasDisponibles] = useState([]);
+  const [selectedProgramaUI, setSelectedProgramaUI] = useState(null);
+  const [esperandoPrograma, setEsperandoPrograma] = useState(false);
+
   const [selectedCursoIdx, setSelectedCursoIdx] = useState(0);
   const [anuncio, setAnuncio] = useState(null);
   const [searchAttempted, setSearchAttempted] = useState(false);
@@ -97,9 +104,28 @@ const App = () => {
   useEffect(() => {
     if (rawData) {
       const cursosProcesados = procesarCursos(rawData.cursos);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setDocente({ ...rawData, cursos: cursosProcesados });
-      setSelectedCursoIdx(0);
+
+      // Lógica de Múltiples Programas
+      const programas = Array.from(new Set(cursosProcesados.map(c => c.programa || 'Sin Programa')));
+
+      if (programas.length > 1) {
+        // Hay varios programas, detener el flujo y preguntar
+        setProgramasDisponibles(programas);
+        setEsperandoPrograma(true);
+        // Guardamos todo el docente pero no seleccionamos programa todavía
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setDocente({ ...rawData, cursos: cursosProcesados });
+      } else {
+        // Solo 1 programa, avanza directo
+        const programaUnico = programas[0] || null;
+        setProgramasDisponibles(programas);
+        setSelectedProgramaUI(programaUnico);
+        setEsperandoPrograma(false);
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setDocente({ ...rawData, cursos: cursosProcesados });
+        setSelectedCursoIdx(0);
+      }
+
       setSearchAttempted(false); // Reset on success
       registrarLog(searchId, '✅ Consulta Exitosa (Cache/Red)');
       trackAppEvent("search_success");
@@ -222,11 +248,24 @@ const App = () => {
     setSearchId(null);
     setSelectedCursoIdx(0);
     setSearchAttempted(false);
+    setSelectedProgramaUI(null);
+    setEsperandoPrograma(false);
+    setProgramasDisponibles([]);
 
     // Si el usuario es un administrador autenticado, devolverlo a su panel
     if (isAdminAuth) {
       setView('admin');
     }
+  };
+
+  const handleProgramSelect = (prog) => {
+    setSelectedProgramaUI(prog);
+    setEsperandoPrograma(false);
+    setSelectedCursoIdx(0);
+  };
+
+  const handleProgramCancel = () => {
+    handleReset();
   };
 
   const handleLogin = (e) => {
@@ -239,7 +278,11 @@ const App = () => {
     else alert("Contraseña incorrecta");
   };
 
-  const cursoActivo = docente && docente.cursos.length > 0 ? docente.cursos[selectedCursoIdx] : null;
+  // Filtrar los cursos basados en el programa seleccionado (si existe)
+  const cursosFiltrados = docente ? (selectedProgramaUI ? docente.cursos.filter(c => (c.programa || 'Sin Programa') === selectedProgramaUI) : docente.cursos) : [];
+
+  // Utilizar los cursos filtrados para HeroCard y Timeline
+  const cursoActivo = cursosFiltrados.length > 0 ? cursosFiltrados[selectedCursoIdx] : null;
 
   // --- VISTA ADMIN (CON DASHBOARD) ---
   if (view === 'admin') {
@@ -283,6 +326,15 @@ const App = () => {
         loading={isLoading}
       />
 
+      {/* MODAL DE SELECCIÓN DE PROGRAMA */}
+      {esperandoPrograma && programasDisponibles.length > 1 && (
+        <ProgramSelectionModal
+          programas={programasDisponibles}
+          onSelect={handleProgramSelect}
+          onCancel={handleProgramCancel}
+        />
+      )}
+
       {anuncio && view !== 'admin' && (
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -321,7 +373,7 @@ const App = () => {
               className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-[320px_1fr] gap-10"
             >
               <Sidebar
-                docente={docente}
+                docente={{ ...docente, cursos: cursosFiltrados }}
                 selectedCursoIdx={selectedCursoIdx}
                 setSelectedCursoIdx={setSelectedCursoIdx}
               />

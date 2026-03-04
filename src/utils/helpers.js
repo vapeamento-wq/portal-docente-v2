@@ -93,7 +93,7 @@ const parseCourseDate = (fechaStr, horaStr) => {
     let hour = 9; // Default
     if (horaStr) {
       const horaLimpia = horaStr.toLowerCase().trim();
-      const matchA = horaLimpia.match(/(\d+)\s*a\s*(\d+)/);
+      const matchA = horaLimpia.match(/-?Hora-?\s*(\d{1,2})\s*[Aa]?\s*[-]?\s*(\d{1,2})/i);
       const matchVarios = horaLimpia.match(/(\d+)/);
 
       if (matchA) {
@@ -138,7 +138,7 @@ export const procesarCursos = (cursos) => {
       // - "Sábado 15/mayo/Hora 14 a 15-"
       // - "sábado/ 18 /abril-Hora-14 A 16-"
       // - "sábado/ 18 /abril - Hora - 14 A 16 -"
-      const horaMatch = texto.match(/[-/]?\s*hora\s*[-:/:/]?\s*(\d{1,2}\s*[Aa]?\s*[-]?\s*\d{1,2})/i);
+      const horaMatch = texto.match(/[-/]?\s*hora[-:/:/]?\s*(\d{1,2}\s*[Aa]?\s*[-]?\s*\d{1,2})/i);
 
       if (horaMatch) {
         horaRaw = horaMatch[1].trim();
@@ -181,7 +181,9 @@ export const procesarCursos = (cursos) => {
         if (texto.includes("Salón") || texto.includes("Aula")) ubicacion = texto;
       }
       else {
-        const idMatch = texto.match(/ID\s*[-:.]?\s*(\d{9,11})/i);
+        // Regex ampliado para detectar "ID 609", "ID: 609", y "Sala Zoom - 51 - 609"
+        // Capturará el bloque numérico final
+        const idMatch = texto.match(/(?:ID|Sala Zoom)[\s\S]*?(\d{9,11})/i);
         zoomId = idMatch ? idMatch[1] : null;
         if (zoomId) finalLink = `https://zoom.us/j/${zoomId}`;
         else {
