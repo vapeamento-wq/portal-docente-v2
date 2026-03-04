@@ -123,6 +123,7 @@ export const procesarCursos = (cursos) => {
   return cursos.map(curso => {
     const semanasProcesadas = [];
     const semanasRaw = curso.semanasRaw || [];
+    const semanasHeaders = curso.semanasHeaders || []; // Array de cabeceras correspondiente
     let lastValidStatus = 'future'; // Fallback logical if no previous date exists
 
     semanasRaw.forEach((texto, i) => {
@@ -134,21 +135,37 @@ export const procesarCursos = (cursos) => {
       let fechaRaw = "";
       let horaRaw = "00 a 00";
 
-      // Match variants like:
-      // - "Sábado 15/mayo/Hora 14 a 15-"
-      // - "sábado/ 18 /abril-Hora-14 A 16-"
-      // - "sábado/ 18 /abril - Hora - 14 A 16 -"
-      const horaMatch = texto.match(/[-/]?\s*hora[-:/:/]?\s*(\d{1,2}\s*[Aa]?\s*[-]?\s*\d{1,2})/i);
+      const textoLimpio = texto.toUpperCase().trim();
+      const esAsincronico = textoLimpio === "ASINCRÓNICO" || textoLimpio === "ASINCRONICO" || textoLimpio.includes("ASINCRÓNIC");
 
-      if (horaMatch) {
-        horaRaw = horaMatch[1].trim();
-        // Extract everything before the matched part as the date
-        const splitIndex = texto.toLowerCase().indexOf('hora');
-        fechaRaw = texto.substring(0, splitIndex).replace(/[-/\s]+$/, '').trim();
+      if (esAsincronico) {
+        // Extraer fecha desde el Header (ej. "Semana 1 - 21/febrero al 27/febrero")
+        const cabecera = semanasHeaders[i] || "";
+        // Tratar de sacar lo que está después del guion o la palabra semana
+        const headerMatch = cabecera.match(/(?:semana\s*\d+\s*[-:]?\s*)(.+)/i);
+        if (headerMatch && headerMatch[1]) {
+          fechaRaw = headerMatch[1].trim(); // Ej: "21/febrero al 27/febrero"
+        } else {
+          fechaRaw = cabecera; // Fallback
+        }
       } else {
-        const partes = texto.split('-');
-        fechaRaw = partes[0].trim();
-        horaRaw = partes[1] ? partes[1].trim() : "00 a 00";
+        // Extraer desde el contenido de la celda normal
+        // Match variants like:
+        // - "Sábado 15/mayo/Hora 14 a 15-"
+        // - "sábado/ 18 /abril-Hora-14 A 16-"
+        // - "sábado/ 18 /abril - Hora - 14 A 16 -"
+        const horaMatch = texto.match(/[-/]?\s*hora[-:/:/]?\s*(\d{1,2}\s*[Aa]?\s*[-]?\s*\d{1,2})/i);
+
+        if (horaMatch) {
+          horaRaw = horaMatch[1].trim();
+          // Extract everything before the matched part as the date
+          const splitIndex = texto.toLowerCase().indexOf('hora');
+          fechaRaw = texto.substring(0, splitIndex).replace(/[-/\s]+$/, '').trim();
+        } else {
+          const partes = texto.split('-');
+          fechaRaw = partes[0].trim();
+          horaRaw = partes[1] ? partes[1].trim() : "00 a 00";
+        }
       }
 
       // Display Strings
@@ -159,15 +176,18 @@ export const procesarCursos = (cursos) => {
       const fechaObj = parseCourseDate(fechaRaw, horaRaw);
 
       // --- 3. Content Logic (Zoom, Location, etc) ---
-      let tipo = 'ZOOM';
-      let displayTexto = '';
+      let tipo = esAsincronico ? 'ASINCRONICO' : 'ZOOM';
+      let displayTexto = esAsincronico ? 'Actividad Asincrónica' : '';
       let ubicacion = '';
       let finalLink = null;
       let zoomId = null;
       let esTrabajoIndependiente = false;
       const textoUpper = texto.toUpperCase();
 
-      if (textoUpper.includes("TRABAJO INDEPEN") || textoUpper.includes("TRABAJO AUTONOMO")) {
+      if (esAsincronico) {
+        horaDisplay = ""; // Ocultar formato 00 a 00
+      }
+      else if (textoUpper.includes("TRABAJO INDEPEN") || textoUpper.includes("TRABAJO AUTONOMO")) {
         tipo = 'INDEPENDIENTE';
         displayTexto = "Trabajo Independiente";
         ubicacion = "Estudio Autónomo";
@@ -204,9 +224,11 @@ export const procesarCursos = (cursos) => {
 
         if (eventDateObj < todayDate) {
           status = 'past';
-        } else if (eventDateObj.getTime() === todayDate.getTime()) {
-          if (esTrabajoIndependiente) {
-            status = 'present'; // Si es independiente y es hoy, está en curso todo el día.
+        } else if (eventDateObj.getTime() === todayDate.getTime() || (esAsincronico && todayDate >= eventDateObj && todayDate <= new Date(eventDateObj.getTime() + 6 * 24 * 60 * 60 * 1000))) {
+          // Si es independiente y es hoy -> Presente. 
+          // Si es Asincrónico y estamos dentro de la semana de inicio (aprox 6 días) -> Presente
+          if (esTrabajoIndependiente || esAsincronico) {
+            status = 'present';
           } else {
             // Detectar hora exacta para ver si ya pasó o está por pasar
             let hInicio = 0;

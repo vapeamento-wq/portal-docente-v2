@@ -220,16 +220,24 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                         bloque: idxBloque !== -1 ? (row[idxBloque] || '') : '',
                         fInicio: idxFInicio !== -1 ? (row[idxFInicio] || '') : '',
                         fFin: idxFFin !== -1 ? (row[idxFFin] || '') : '',
-                        semanasRaw: []
+                        semanasRaw: [],
+                        semanasHeaders: [] // NUEVO: Guardar el texto de la cabecera del Excel para sacar la fecha de los Asincrónicos
                     };
 
-                    // Extraer las 16 semanas dinámicas
+                    // Extraer las 16 semanas dinámicas y sus cabeceras
                     for (let s = 0; s < 16; s++) {
                         const colIdx = semanasColIndexes[s];
                         if (colIdx !== -1 && row[colIdx]) {
                             curso.semanasRaw.push(row[colIdx]);
                         } else {
                             curso.semanasRaw.push('-');
+                        }
+
+                        // Guardar la cabecera correspondiente (ej. "Semana 1 - 21/febrero al 27/febrero")
+                        if (colIdx !== -1 && headers[colIdx]) {
+                            curso.semanasHeaders.push(String(headers[colIdx]));
+                        } else {
+                            curso.semanasHeaders.push(`Semana ${s + 1}`);
                         }
                     }
 

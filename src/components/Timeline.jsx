@@ -87,6 +87,8 @@ const Timeline = ({ cursoActivo, docenteId }) => {
 
                                     {s.tipo === 'INDEPENDIENTE' ? (
                                         <div className="inline-block bg-blue-50 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200 dark:border-blue-800/50 px-4 py-2 rounded-full text-sm font-bold mt-2 border border-blue-100 transition-colors">🏠 {s.displayTexto}</div>
+                                    ) : s.tipo === 'ASINCRONICO' ? (
+                                        <div className="inline-block bg-indigo-50 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-200 dark:border-indigo-800/50 px-4 py-2 rounded-full text-sm font-bold mt-2 border border-indigo-100 transition-colors">⏳ {s.displayTexto}</div>
                                     ) : s.tipo === 'PRESENCIAL' ? (
                                         <div className="inline-block bg-blue-50 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200 dark:border-blue-800/50 px-4 py-2 rounded-full text-sm font-bold mt-2 border border-blue-100 transition-colors">🏫 {s.displayTexto} <br /> ⏰ {s.hora}</div>
                                     ) : (
