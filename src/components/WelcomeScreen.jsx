@@ -11,13 +11,11 @@ const WelcomeScreen = ({ fechaEspanol, onAdminAccess }) => {
             transition={{ duration: 0.4 }}
             className="col-span-1 md:col-span-2 text-center py-24 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border border-white/20 dark:border-white/5 shadow-lg rounded-[20px] transition-colors duration-300 relative overflow-hidden"
         >
-            <div className="w-full h-48 md:h-64 rounded-2xl overflow-hidden mb-10 relative shadow-2xl mx-auto max-w-3xl border border-white/10">
-                <motion.img
+            <div className="w-full h-64 md:h-96 rounded-2xl overflow-hidden mb-10 relative shadow-2xl mx-auto max-w-5xl border border-white/10">
+                <img
                     src="/entrada_principal.jpg"
                     alt="Campus Universitario"
                     className="w-full h-full object-cover"
-                    animate={{ scale: [1.05, 1.15, 1.05], objectPosition: ['50% 50%', '40% 60%', '50% 50%'] }}
-                    transition={{ duration: 30, ease: "linear", repeat: Infinity }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#003366]/80 via-[#003366]/20 to-transparent flex items-end justify-center pb-6">
                     <div className="w-16 h-1 bg-[#db9b32] rounded-full opacity-80 shadow-[0_0_10px_rgba(219,155,50,0.5)]"></div>
