@@ -13,13 +13,13 @@ const WelcomeScreen = ({ fechaEspanol, onAdminAccess }) => {
         >
             <div className="w-full h-48 md:h-64 rounded-2xl overflow-hidden mb-10 relative shadow-2xl mx-auto max-w-3xl border border-white/10">
                 <motion.img
-                    src="https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&w=1200&q=80"
-                    alt="Clase universitaria moderna"
+                    src="/entrada_principal.jpg"
+                    alt="Campus Universitario"
                     className="w-full h-full object-cover"
                     animate={{ scale: [1.05, 1.15, 1.05], objectPosition: ['50% 50%', '40% 60%', '50% 50%'] }}
                     transition={{ duration: 30, ease: "linear", repeat: Infinity }}
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#003366]/80 via-transparent to-transparent flex items-end justify-center pb-6">
+                <div className="absolute inset-0 bg-gradient-to-t from-[#003366]/80 via-[#003366]/20 to-transparent flex items-end justify-center pb-6">
                     <div className="w-16 h-1 bg-[#db9b32] rounded-full opacity-80 shadow-[0_0_10px_rgba(219,155,50,0.5)]"></div>
                 </div>
             </div>

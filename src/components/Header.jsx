@@ -1,13 +1,19 @@
 import React from 'react';
 import { trackAppEvent } from '../App';
+import { registrarLog } from '../utils/helpers';
 
 const Header = ({ onReset, docente, searchTerm, setSearchTerm, onSearch, loading }) => {
   return (
-    <header className="bg-[#003366] py-6 relative overflow-hidden">
+    <header className="bg-[#003366] py-6 relative overflow-hidden text-white shadow-xl">
       <div className="max-w-7xl mx-auto px-5 flex flex-col md:flex-row justify-between items-center relative z-10 gap-4 md:gap-0">
         <div className="text-center md:text-left flex flex-col justify-center items-center md:items-start" onClick={onReset}>
-          <h1 className="m-0 text-[#db9b32] text-2xl md:text-3xl font-extrabold tracking-tighter cursor-pointer">PORTAL DOCENTES</h1>
-          <h2 className="mt-1 text-xs md:text-sm text-white/80 font-medium tracking-[2px] uppercase cursor-pointer">CREO - UNIVERSIDAD DEL MAGDALENA</h2>
+          <div className="flex items-center gap-4 cursor-pointer hover:opacity-90 transition-opacity">
+            <img src="/logo1_450x150.png.png" alt="Logo UNIMAGDALENA" className="h-[4.5rem] md:h-[5.5rem] object-contain drop-shadow-md" onError={(e) => e.target.style.display = 'none'} />
+            <div className="flex flex-col text-left">
+              <h1 className="m-0 text-[#db9b32] text-2xl md:text-3xl font-extrabold tracking-tighter" style={{ fontFamily: 'Arial Black, Impact, sans-serif' }}>PORTAL DOCENTE</h1>
+              <h2 className="m-0 text-[10px] md:text-sm text-white/90 font-semibold tracking-[2px] uppercase">CREO - UNIVERSIDAD DEL MAGDALENA</h2>
+            </div>
+          </div>
 
           {docente && (
             <div className="mt-5 flex flex-wrap justify-center md:justify-start gap-3 md:gap-4">
@@ -28,7 +34,13 @@ const Header = ({ onReset, docente, searchTerm, setSearchTerm, onSearch, loading
                 href="https://universidadmag-my.sharepoint.com/:f:/g/personal/acantillo_unimagdalena_edu_co/IgAtZLm1Z-5YRIkHr25vC6BRAYbjxQUbr8id7AALp2TlW28?e=Zt8nYB"
                 target="_blank"
                 rel="noreferrer"
-                onClick={(e) => { e.stopPropagation(); trackAppEvent("click_centro_ayuda"); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  trackAppEvent("click_centro_ayuda");
+                  if (docente?.idReal) {
+                    registrarLog(docente.idReal, '🎬 Clic en Mini Clips');
+                  }
+                }}
                 className="group flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white backdrop-blur-md px-5 py-2.5 rounded-full text-sm font-bold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 border border-white/20 hover:border-white/50 no-underline"
               >
                 <span className="text-lg transform group-hover:scale-110 transition-transform">🎬</span> Mini Clips Campus

@@ -838,7 +838,12 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                                                 <td className="p-4 text-sm text-gray-700 dark:text-gray-300">{log.fecha || 'Sin fecha'}</td>
                                                 <td className="p-4 text-sm font-mono text-[#003366] dark:text-blue-400 font-bold">{log.doc || 'N/A'}</td>
                                                 <td className="p-4 text-sm">
-                                                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold ${log.estado?.includes('❌') ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'}`}>
+                                                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold ${
+                                                        log.estado?.includes('❌') || log.estado?.includes('Error') || log.estado?.includes('No Encontrado') ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                                                        log.estado?.includes('Zoom') || log.estado?.includes('Unido') ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                                                        log.estado?.includes('Mini Clips') ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
+                                                        'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                                    }`}>
                                                         {log.estado || 'Desconocido'}
                                                     </span>
                                                 </td>
