@@ -13,7 +13,7 @@ const WelcomeScreen = ({ fechaEspanol, onAdminAccess }) => {
         >
             <div className="w-full h-64 md:h-96 rounded-2xl overflow-hidden mb-10 relative shadow-2xl mx-auto max-w-5xl border border-white/10">
                 <img
-                    src="/entrada_principal.jpg"
+                    src="/cabana_lago.jpg"
                     alt="Campus Universitario"
                     className="w-full h-full object-cover"
                 />
