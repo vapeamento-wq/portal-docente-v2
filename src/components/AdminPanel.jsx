@@ -24,6 +24,7 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
     const [fullLogs, setFullLogs] = useState([]); // Para estadísticas completas
     const [activeTab, setActiveTab] = useState('radar'); // 'radar', 'logs', 'stats'
     const [programaSeleccionado, setProgramaSeleccionado] = useState(''); // Obligar a seleccionar
+    const [filtroRadarPrograma, setFiltroRadarPrograma] = useState('TODOS'); // Filtro para el radar
 
     // --- ESTADOS PARA ESTADÍSTICAS ---
     const [dateRangeFilter, setDateRangeFilter] = useState('30'); // '7', '30', 'all', 'custom'
@@ -389,6 +390,7 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                                     idDocente: docente.idReal,
                                     nombreDocente: docente.nombre,
                                     cursoMateria: curso.materia,
+                                    programa: curso.programa || 'Sin Etiqueta', // Extraer el programa para el filtro
                                     tipo: semana.tipo,
                                     hora: semana.hora,
                                     numSemana: semana.num,
@@ -430,6 +432,18 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
 
         setRadarHoy(activos);
     }, [docentesListFull]);
+
+    // Opciones únicas de programas detectados en el radar de hoy
+    const programasEnRadarHoy = React.useMemo(() => {
+        const programas = new Set(radarHoy.map(a => a.programa));
+        return Array.from(programas).sort();
+    }, [radarHoy]);
+
+    // Filtrar visualmente la lista del radar según la selección
+    const radarHoyFiltrado = React.useMemo(() => {
+        if (filtroRadarPrograma === 'TODOS') return radarHoy;
+        return radarHoy.filter(a => a.programa === filtroRadarPrograma);
+    }, [radarHoy, filtroRadarPrograma]);
 
     // Calcular estadísticas de programas cargados
     const programStats = React.useMemo(() => {
@@ -819,21 +833,41 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                 </div>
 
                 {activeTab === 'radar' && (
-                    <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-8 fade-in-up">
+                    <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-8 fade-in-up">
 
                         {/* RADAR DE HOY */}
-                        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-100 dark:border-slate-700 transition-colors flex flex-col h-[600px]">
+                        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-100 dark:border-slate-700 transition-colors flex flex-col h-[650px] shadow-sm">
                             <div className="flex justify-between items-center mb-4">
                                 <h4 className="m-0 text-orange-500 font-bold text-lg flex items-center gap-2">🔥 Radar (Hoy)</h4>
-                                <span className="bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400 font-bold px-2.5 py-1 rounded-full text-xs">{radarHoy.length} Activos</span>
+                                <span className="bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400 font-bold px-2.5 py-1 rounded-full text-xs">{radarHoyFiltrado.length} Activos</span>
                             </div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 pb-4 border-b border-gray-100 dark:border-slate-700">Clases remotas programadas para el día de hoy ordenadas por hora.</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Clases remotas programadas para el día de hoy ordenadas por hora.</p>
+
+                            {/* NUEVO: FILTRO POR PROGRAMA EN RADAR */}
+                            {programasEnRadarHoy.length > 0 && (
+                                <div className="mb-4 pb-4 border-b border-gray-100 dark:border-slate-700">
+                                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Filtrar por Programa:</label>
+                                    <select
+                                        value={filtroRadarPrograma}
+                                        onChange={(e) => setFiltroRadarPrograma(e.target.value)}
+                                        className="w-full p-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-900 text-sm font-bold text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-300 cursor-pointer"
+                                    >
+                                        <option value="TODOS">Todas las Materias Disponibles</option>
+                                        {programasEnRadarHoy.map(prog => (
+                                            <option key={prog} value={prog}>{prog}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
 
                             <div className="flex-1 overflow-y-auto pr-2 space-y-4 custom-scrollbar">
-                                {radarHoy.length === 0 ? (
-                                    <div className="text-center text-gray-400 text-sm py-10">No hay clases sincrónicas programadas para hoy.</div>
+                                {radarHoyFiltrado.length === 0 ? (
+                                    <div className="text-center text-gray-400 text-sm py-10">
+                                        No hay clases sincrónicas programadas para hoy
+                                        {filtroRadarPrograma !== 'TODOS' ? ` en ${filtroRadarPrograma}` : ''}.
+                                    </div>
                                 ) : (
-                                    radarHoy.map((act, i) => {
+                                    radarHoyFiltrado.map((act, i) => {
                                         // Determinar colores basados en el estado (gris=pasado, verde=presente, azul=futuro)
                                         let borderColor = 'border-blue-100/50 dark:border-blue-900/30';
                                         let bgColor = 'bg-blue-50/50 dark:bg-blue-900/10 hover:bg-blue-50 dark:hover:bg-blue-900/20';
@@ -875,7 +909,12 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                                                     </span>
                                                 </div>
 
-                                                <div className="text-xs text-gray-600 dark:text-gray-400 font-bold mb-3 pl-2 opacity-80">Semana {act.numSemana} • {act.cursoMateria}</div>
+                                                <div className="text-xs text-gray-600 dark:text-gray-400 font-bold mb-3 pl-2 opacity-80">
+                                                    Semana {act.numSemana} • {act.cursoMateria}
+                                                    {act.programa !== 'Sin Etiqueta' && (
+                                                        <span className="block mt-0.5 text-[10px] text-gray-400 font-normal uppercase">{act.programa}</span>
+                                                    )}
+                                                </div>
 
                                                 <div className="flex justify-between items-center pl-2">
                                                     <span className="text-xs text-gray-500 font-bold flex items-center gap-1">⏰ {act.hora}</span>
@@ -897,7 +936,7 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                         </div>
 
                         {/* Directorio de Docentes Real */}
-                        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-100 dark:border-slate-700 transition-colors overflow-hidden flex flex-col h-[600px]">
+                        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-100 dark:border-slate-700 transition-colors overflow-hidden flex flex-col h-[650px] shadow-sm">
                             <div className="flex justify-between items-center flex-wrap gap-4 mb-6">
                                 <h4 className="m-0 text-[#003366] dark:text-blue-400 font-bold text-xl">👥 Directorio Sincronizado ({docentesList.length})</h4>
                                 <form onSubmit={(e) => e.preventDefault()}>
@@ -1125,9 +1164,9 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                                                 <td className="p-4 text-sm font-mono text-[#003366] dark:text-blue-400 font-bold">{log.doc || 'N/A'}</td>
                                                 <td className="p-4 text-sm">
                                                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold ${log.estado?.includes('❌') || log.estado?.includes('Error') || log.estado?.includes('No Encontrado') ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                                                            log.estado?.includes('Zoom') || log.estado?.includes('Unido') ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
-                                                                log.estado?.includes('Mini Clips') ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
-                                                                    'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                                        log.estado?.includes('Zoom') || log.estado?.includes('Unido') ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                                                            log.estado?.includes('Mini Clips') ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
+                                                                'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
                                                         }`}>
                                                         {log.estado || 'Desconocido'}
                                                     </span>
