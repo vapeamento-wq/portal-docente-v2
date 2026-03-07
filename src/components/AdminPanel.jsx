@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import * as XLSX from 'xlsx';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell } from 'recharts';
 import { URL_TU_EXCEL_MAESTRO, URL_FIREBASE_CONSOLE, procesarCursos, registrarLog } from '../utils/helpers';
 
 const FIREBASE_DB_URL = `${import.meta.env.VITE_FIREBASE_DB_BASE_URL}/docentes.json`;
@@ -21,8 +21,13 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
     const [guardandoAnuncio, setGuardandoAnuncio] = useState(false);
     const [mantenimientoActivo, setMantenimientoActivo] = useState(false);
     const [logs, setLogs] = useState([]);
-    const [activeTab, setActiveTab] = useState('radar'); // 'radar', 'logs'
+    const [fullLogs, setFullLogs] = useState([]); // Para estadísticas completas
+    const [activeTab, setActiveTab] = useState('radar'); // 'radar', 'logs', 'stats'
     const [programaSeleccionado, setProgramaSeleccionado] = useState(''); // Obligar a seleccionar
+
+    // --- ESTADOS PARA ESTADÍSTICAS ---
+    const [dateRangeFilter, setDateRangeFilter] = useState('30'); // '7', '30', 'all', 'custom'
+    const [fullAnalyticsRaw, setFullAnalyticsRaw] = useState({});
 
     useEffect(() => {
         // Fetch current teachers on mount
@@ -44,14 +49,15 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                     setDocentesListFull([]);
                 }
 
-                // Fetch Analytics
+                // Fetch Analytics (All available to handle custom date ranges)
                 const dbBaseUrl = import.meta.env.VITE_FIREBASE_DB_BASE_URL;
-                const resStats = await fetch(`${dbBaseUrl}/analytics/daily.json`);
+                const resStats = await fetch(`${dbBaseUrl}/analytics/daily.json?orderBy="$key"&limitToLast=90`); // Hasta 3 meses initially, can refine
                 const dataStats = await resStats.json();
                 if (dataStats) {
-                    // Convert object {"YYYY-MM-DD": count} to array [{name: "DD/MM", consultas: count}]
+                    setFullAnalyticsRaw(dataStats);
+                    // Default view last 10 for dashboard preview component
                     const formattedStats = Object.keys(dataStats).slice(-10).map(dateStr => {
-                        const [yyyy, mm, dd] = dateStr.split('-');
+                        const [, mm, dd] = dateStr.split('-');
                         return { name: `${dd}/${mm}`, consultas: dataStats[dateStr] };
                     });
                     setAnalyticsData(formattedStats);
@@ -70,12 +76,14 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                     }
                 }
 
-                // Fetch Logs (últimos 100)
-                const resLogs = await fetch(`${dbBaseUrl}/logs.json?auth=${secretAuth}`);
+                // Fetch Logs (Limit to last 1000 for stats)
+                const resLogs = await fetch(`${dbBaseUrl}/logs.json?auth=${secretAuth}&orderBy="$key"&limitToLast=1000`);
                 const dataLogs = await resLogs.json();
                 if (dataLogs && !dataLogs.error) {
                     const logsArray = Object.keys(dataLogs).map(k => ({ id: k, ...dataLogs[k] }));
-                    setLogs(logsArray.reverse().slice(0, 100));
+                    const sortedLogs = logsArray.reverse();
+                    setFullLogs(sortedLogs);
+                    setLogs(sortedLogs.slice(0, 100)); // Default view
                 }
 
             } catch (err) {
@@ -439,6 +447,141 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
         return stats;
     }, [docentesListFull]);
 
+    // --- KPIs & ESTADÍSTICAS AVANZADAS ---
+    const advancedStats = useMemo(() => {
+        if (!fullAnalyticsRaw) return null;
+
+        let filteredDates = Object.keys(fullAnalyticsRaw).sort(); // YYYY-MM-DD sortable nature
+
+        // Date Filtering Logic
+        if (dateRangeFilter !== 'all') {
+            const today = new Date();
+            const pastDate = new Date();
+            pastDate.setDate(today.getDate() - parseInt(dateRangeFilter));
+
+            const pastDateString = pastDate.toISOString().split('T')[0]; // YYYY-MM-DD
+            filteredDates = filteredDates.filter(d => d >= pastDateString);
+        }
+
+        if (filteredDates.length === 0) return null;
+
+        let historicoTotal = 0;
+        let picosData = [];
+        const areaChartData = [];
+
+        filteredDates.forEach(dateStr => {
+            const num = fullAnalyticsRaw[dateStr] || 0;
+            historicoTotal += num;
+            picosData.push({ fullDate: dateStr, consultas: num });
+
+            const [, mm, dd] = dateStr.split('-');
+            areaChartData.push({ name: `${dd}/${mm}`, consultas: num, fullDate: dateStr });
+        });
+
+        const diasConActividad = filteredDates.length;
+        const promedioDiario = diasConActividad > 0 ? (historicoTotal / diasConActividad).toFixed(1) : 0;
+
+        // Día Récord
+        const diaRecordObj = [...picosData].sort((a, b) => b.consultas - a.consultas)[0];
+
+        // Top 5 Traffic Days
+        const top5Dias = [...areaChartData].sort((a, b) => b.consultas - a.consultas).slice(0, 5);
+
+        // Success vs Error from full logs
+        let successCount = 0;
+        let errorCount = 0;
+
+        // Filtrar Logs según el rango seleccionado aproximando por la propiedad 'fecha'
+        let logsEnRango = fullLogs;
+
+        if (dateRangeFilter !== 'all') {
+            const today = new Date();
+            const pastDate = new Date();
+            pastDate.setDate(today.getDate() - parseInt(dateRangeFilter));
+            const pastTimestamps = pastDate.getTime();
+
+            logsEnRango = fullLogs.filter(log => {
+                // Approximate timestamp logic - log.fecha is usually "DD/MM/YYYY, HH:MM:SS" format in JS generated locale
+                try {
+                    const [datePart] = (log.fecha || '').split(',');
+                    const [dd, mm, yyyy] = datePart.trim().split('/');
+                    if (dd && mm && yyyy) {
+                        const logTime = new Date(`${yyyy}-${mm}-${dd}T00:00:00`).getTime();
+                        return logTime >= pastTimestamps;
+                    }
+                    return true; // Fallback include if unable to parse
+                } catch (e) { return true; }
+            });
+        }
+
+        logsEnRango.forEach(l => {
+            if (l.estado && (l.estado.includes('Error') || l.estado.includes('❌') || l.estado.includes('No Encontrado'))) {
+                errorCount++;
+            } else {
+                successCount++;
+            }
+        });
+
+        const totalLogsForPie = successCount + errorCount;
+        const tasaExito = totalLogsForPie > 0 ? ((successCount / totalLogsForPie) * 100).toFixed(1) : 0;
+
+        const pieChartData = [
+            { name: 'Éxito / Busquadas', value: successCount },
+            { name: 'Errores / No Encontrado', value: errorCount },
+        ];
+
+        return {
+            historicoTotal,
+            promedioDiario,
+            diaRecord: diaRecordObj ? `${diaRecordObj.fullDate.split('-').reverse().join('/')} (${diaRecordObj.consultas} hits)` : 'N/A',
+            tasaRetencion: `${tasaExito}%`,
+            totalUsuarios: docentesList.length,
+            areaChartData,
+            pieChartData,
+            top5Dias,
+            logsUtilizados: logsEnRango // Guardar para exportar
+        };
+
+    }, [fullAnalyticsRaw, fullLogs, dateRangeFilter, docentesList.length]);
+
+    const handleDownloadExcelStats = () => {
+        if (!advancedStats) return;
+
+        // HOJA 1: RESUMEN
+        const resumenData = [
+            { Metrica: 'Total de Usuarios en DB', Valor: advancedStats.totalUsuarios },
+            { Metrica: 'Total de Consultas', Valor: advancedStats.historicoTotal },
+            { Metrica: 'Promedio Diario de Consultas', Valor: advancedStats.promedioDiario },
+            { Metrica: 'Día Récord de Tráfico', Valor: advancedStats.diaRecord },
+            { Metrica: 'Tasa de Éxito', Valor: advancedStats.tasaRetencion },
+        ];
+        const wsResumen = XLSX.utils.json_to_sheet(resumenData);
+
+        // HOJA 2: HISTORICO DIAS
+        const historicoClean = advancedStats.areaChartData.map(d => ({
+            Fecha: d.fullDate,
+            Consultas: d.consultas
+        }));
+        const wsHistorico = XLSX.utils.json_to_sheet(historicoClean);
+
+        // HOJA 3: AUDITORIA LOGS
+        const logsAuditoria = advancedStats.logsUtilizados.map(l => ({
+            FechaHora: l.fecha,
+            Documento: l.doc,
+            Estado: l.estado
+        }));
+        const wsLogs = XLSX.utils.json_to_sheet(logsAuditoria);
+
+        // ENSAMBLAR LIBRO
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, wsResumen, 'Resumen_KPIs');
+        XLSX.utils.book_append_sheet(wb, wsHistorico, 'Historico_Diario');
+        XLSX.utils.book_append_sheet(wb, wsLogs, 'Auditoria_Logs');
+
+        // DESCARGAR
+        XLSX.writeFile(wb, `Reporte_Estadisticas_${dateRangeFilter}dias_${new Date().getTime()}.xlsx`);
+    };
+
     const handleToggleMantenimiento = async () => {
         const nuevoEstado = !mantenimientoActivo;
         setMantenimientoActivo(nuevoEstado);
@@ -660,15 +803,19 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                 </div>
 
                 {/* TAB NAVIGATION */}
-                <div className="flex bg-gray-100 dark:bg-slate-700/50 p-1 rounded-xl mb-6 max-w-xl mx-auto border border-gray-200 dark:border-slate-600">
+                <div className="flex bg-gray-100 dark:bg-slate-700/50 p-1 rounded-xl mb-6 max-w-2xl mx-auto border border-gray-200 dark:border-slate-600 shadow-inner">
                     <button
                         onClick={() => setActiveTab('radar')}
                         className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${activeTab === 'radar' ? 'bg-white dark:bg-slate-800 text-[#003366] dark:text-blue-400 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
                     >🔥 Radar y Directorio</button>
                     <button
+                        onClick={() => setActiveTab('stats')}
+                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${activeTab === 'stats' ? 'bg-white dark:bg-slate-800 text-[#003366] dark:text-blue-400 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                    >📊 Estadísticas Avanzadas</button>
+                    <button
                         onClick={() => setActiveTab('logs')}
                         className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${activeTab === 'logs' ? 'bg-white dark:bg-slate-800 text-[#003366] dark:text-blue-400 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
-                    >📝 Logs de Búsqueda</button>
+                    >📝 Auditoría de Logs</button>
                 </div>
 
                 {activeTab === 'radar' && (
@@ -815,6 +962,145 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                     </div>
                 )}
 
+                {activeTab === 'stats' && advancedStats && (
+                    <div className="fade-in-up transition-colors w-full space-y-6">
+
+                        {/* HEADER DE STATS */}
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-800 p-5 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm">
+                            <div>
+                                <h3 className="m-0 text-[#003366] dark:text-blue-400 text-xl font-bold flex items-center gap-2">📊 Panel de Rendimiento</h3>
+                                <p className="text-gray-500 text-sm mt-1">Análisis histórico e inteligencia de uso de la plataforma.</p>
+                            </div>
+                            <div className="flex items-center gap-3 w-full md:w-auto">
+                                <select
+                                    value={dateRangeFilter}
+                                    onChange={(e) => setDateRangeFilter(e.target.value)}
+                                    className="p-2.5 rounded-xl border border-gray-300 dark:border-slate-600 bg-gray-50 dark:bg-slate-900 text-sm font-bold text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-[#003366] cursor-pointer"
+                                >
+                                    <option value="7">Últimos 7 Días</option>
+                                    <option value="30">Últimos 30 Días</option>
+                                    <option value="90">Últimos 90 Días</option>
+                                    <option value="all">Histórico Completo</option>
+                                </select>
+                                <button
+                                    onClick={handleDownloadExcelStats}
+                                    className="flex items-center gap-2 px-6 py-2.5 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl transition-colors shadow-md cursor-pointer whitespace-nowrap"
+                                >
+                                    📥 Exportar Excel
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* KPIS CRASH RESUMEN */}
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                            {[
+                                { label: 'Consultas Reales', valor: advancedStats.historicoTotal, icon: '📈', color: 'blue' },
+                                { label: 'Promedio Diario', valor: advancedStats.promedioDiario, icon: '📅', color: 'indigo' },
+                                { label: 'Día Pico', valor: advancedStats.diaRecord.split(' ')[0], icon: '🔥', sub: advancedStats.diaRecord.split(' ')[1], color: 'orange' },
+                                { label: 'Tasa Retención', valor: advancedStats.tasaRetencion, icon: '🎯', color: 'green' },
+                                { label: 'Docentes DB', valor: advancedStats.totalUsuarios, icon: '👥', color: 'purple' },
+                            ].map((k, i) => (
+                                <div key={i} className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-gray-100 dark:border-slate-700 hover:-translate-y-1 hover:shadow-lg transition-transform duration-300 cursor-default flex flex-col justify-between">
+                                    <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+                                        <span>{k.icon}</span> {k.label}
+                                    </div>
+                                    <div className="flex items-baseline gap-2">
+                                        <div className={`text-2xl font-black text-${k.color}-600 dark:text-${k.color}-400`}>{k.valor}</div>
+                                        {k.sub && <div className="text-xs text-gray-400 whitespace-nowrap">{k.sub} {k.subTxt}</div>}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* GRAFICOS SECUNDARIOS */}
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                            {/* Area Chart: Evolucion Temporal */}
+                            <div className="lg:col-span-2 bg-white dark:bg-slate-800 p-5 rounded-2xl border border-gray-100 dark:border-slate-700 flex flex-col min-h-[350px]">
+                                <h4 className="m-0 mb-4 text-[#003366] dark:text-blue-400 font-bold text-md border-b border-gray-100 dark:border-slate-700 pb-3">Fluctuación de Consultas</h4>
+                                <div className="flex-1 w-full min-h-[300px]">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <AreaChart data={advancedStats.areaChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                            <defs>
+                                                <linearGradient id="colorConsultas" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="5%" stopColor="#003366" stopOpacity={0.8} />
+                                                    <stop offset="95%" stopColor="#003366" stopOpacity={0} />
+                                                </linearGradient>
+                                                <linearGradient id="colorConsultasDark" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
+                                                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                                                </linearGradient>
+                                            </defs>
+                                            <XAxis dataKey="name" stroke="#888" fontSize={11} tickLine={false} axisLine={false} />
+                                            <YAxis stroke="#888" fontSize={11} tickLine={false} axisLine={false} allowDecimals={false} />
+                                            <Tooltip
+                                                contentStyle={{ borderRadius: '15px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}
+                                                labelStyle={{ fontWeight: 'bold', color: '#333' }}
+                                            />
+                                            {/* Modo Claro */}
+                                            <Area type="monotone" dataKey="consultas" stroke="#003366" strokeWidth={3} fillOpacity={1} fill="url(#colorConsultas)" className="dark:hidden" />
+                                            {/* Modo Oscuro (usando className support in recharts is finicky, better to use standard fallback but we rely on colors that pop on both generally if needed, or stick to solid hex) */}
+                                            <Area type="monotone" dataKey="consultas" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorConsultasDark)" className="hidden dark:block" />
+                                        </AreaChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col gap-6">
+                                {/* Tasa de Exito: Pie Chart */}
+                                <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-gray-100 dark:border-slate-700 flex flex-col min-h-[200px]">
+                                    <h4 className="m-0 mb-2 text-[#003366] dark:text-blue-400 font-bold text-md text-center">Fricción de Usuarios (Hits vs Fallos)</h4>
+                                    <div className="flex-1 w-full min-h-[160px]">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <PieChart>
+                                                <Pie
+                                                    data={advancedStats.pieChartData}
+                                                    cx="50%"
+                                                    cy="50%"
+                                                    innerRadius={50}
+                                                    outerRadius={70}
+                                                    paddingAngle={5}
+                                                    dataKey="value"
+                                                    stroke="none"
+                                                >
+                                                    {advancedStats.pieChartData.map((entry, index) => (
+                                                        <Cell key={`cell-${index}`} fill={index === 0 ? '#10b981' : '#f43f5e'} />
+                                                    ))}
+                                                </Pie>
+                                                <Tooltip contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }} />
+                                            </PieChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                    <div className="flex justify-center gap-4 text-xs font-bold mt-2">
+                                        <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400"><span className="w-3 h-3 rounded-full bg-emerald-500"></span> Éxito</span>
+                                        <span className="flex items-center gap-1 text-rose-600 dark:text-rose-400"><span className="w-3 h-3 rounded-full bg-rose-500"></span> Error/No Datos</span>
+                                    </div>
+                                </div>
+
+                                {/* Top Traffic - Bar Chart */}
+                                <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-gray-100 dark:border-slate-700 flex flex-col flex-1 h-[200px]">
+                                    <h4 className="m-0 mb-4 text-[#003366] dark:text-blue-400 font-bold text-md border-b border-gray-100 dark:border-slate-700 pb-3 text-center">Top Días Críticos</h4>
+                                    <div className="flex-1 w-full mt-2">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart data={advancedStats.top5Dias} layout="vertical" margin={{ top: 0, right: 20, left: 10, bottom: 0 }}>
+                                                <XAxis type="number" hide />
+                                                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} fontSize={11} stroke="#888" width={45} />
+                                                <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '10px', border: 'none' }} />
+                                                <Bar dataKey="consultas" fill="#f59e0b" radius={[0, 4, 4, 0]} barSize={15}>
+                                                    {advancedStats.top5Dias.map((entry, index) => (
+                                                        <Cell key={`cell-${index}`} fill={index === 0 ? '#ef4444' : '#f59e0b'} />
+                                                    ))}
+                                                </Bar>
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                )}
+
                 {activeTab === 'logs' && (
                     <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-100 dark:border-slate-700 transition-colors fade-in-up">
                         <div className="flex justify-between items-center mb-6">
@@ -838,12 +1124,11 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                                                 <td className="p-4 text-sm text-gray-700 dark:text-gray-300">{log.fecha || 'Sin fecha'}</td>
                                                 <td className="p-4 text-sm font-mono text-[#003366] dark:text-blue-400 font-bold">{log.doc || 'N/A'}</td>
                                                 <td className="p-4 text-sm">
-                                                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold ${
-                                                        log.estado?.includes('❌') || log.estado?.includes('Error') || log.estado?.includes('No Encontrado') ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                                                        log.estado?.includes('Zoom') || log.estado?.includes('Unido') ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
-                                                        log.estado?.includes('Mini Clips') ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
-                                                        'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                                                    }`}>
+                                                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold ${log.estado?.includes('❌') || log.estado?.includes('Error') || log.estado?.includes('No Encontrado') ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                                                            log.estado?.includes('Zoom') || log.estado?.includes('Unido') ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                                                                log.estado?.includes('Mini Clips') ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
+                                                                    'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                                        }`}>
                                                         {log.estado || 'Desconocido'}
                                                     </span>
                                                 </td>
