@@ -61,8 +61,6 @@ const App = () => {
       setIsAdminAuth(user ? isAdmin() : false);
       // Si un admin inicia sesión y estaba en la pantalla de login, ir al panel
       if (user && !user.isAnonymous && view === 'login') setView('admin');
-      // Si la sesión admin se cierra y estaba en admin, volver a user
-      if (user && user.isAnonymous && view === 'admin') setView('user');
     });
     return () => unsubscribe();
   }, [view]);
@@ -282,7 +280,7 @@ const App = () => {
   if (view === 'admin') {
     return (
       <AdminPanel
-        onBack={() => { logoutAdmin(); setView('user'); }}
+        onBack={async () => { await logoutAdmin(); setView('user'); }}
         onSelectDocente={handleAdminSelectDocente}
         userRole={getUserRole()}
       />
