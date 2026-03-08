@@ -22,7 +22,7 @@ const LoginModal = ({ onSubmit, onCancel, loading, error }) => {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          style={{ width: '100%', padding: '13px 15px', marginBottom: '12px', border: '1px solid #ddd', borderRadius: '12px', outline: 'none', background: '#f9f9f9', boxSizing: 'border-box', fontSize: '0.95rem' }}
+          style={{ width: '100%', padding: '13px 15px', marginBottom: '12px', border: '1px solid #ddd', borderRadius: '12px', outline: 'none', background: '#f9f9f9', boxSizing: 'border-box', fontSize: '0.95rem', color: '#333' }}
           autoFocus
         />
         <input
@@ -31,7 +31,7 @@ const LoginModal = ({ onSubmit, onCancel, loading, error }) => {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          style={{ width: '100%', padding: '13px 15px', marginBottom: '16px', border: '1px solid #ddd', borderRadius: '12px', outline: 'none', background: '#f9f9f9', boxSizing: 'border-box', fontSize: '0.95rem' }}
+          style={{ width: '100%', padding: '13px 15px', marginBottom: '16px', border: '1px solid #ddd', borderRadius: '12px', outline: 'none', background: '#f9f9f9', boxSizing: 'border-box', fontSize: '0.95rem', color: '#333' }}
         />
 
         {error && (
