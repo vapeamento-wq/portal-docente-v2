@@ -1,4 +1,4 @@
-import { getAdminToken } from './firebaseAuth';
+import { getAuthToken } from './firebaseAuth';
 
 export const URL_SCRIPT_LOGS = import.meta.env.VITE_SCRIPT_LOGS_URL;
 export const URL_TU_EXCEL_MAESTRO = import.meta.env.VITE_EXCEL_MAESTRO_URL;
@@ -14,7 +14,7 @@ export const registrarLog = async (documento, accion) => {
     const dbUrl = import.meta.env.VITE_FIREBASE_DB_BASE_URL;
 
     // Obtener el token de Firebase Auth (si hay sesión activa)
-    const token = await getAdminToken();
+    const token = await getAuthToken();
     const authParam = token ? `?auth=${token}` : '';
 
     fetch(`${dbUrl}/logs.json${authParam}`, {
@@ -37,7 +37,7 @@ const recordFirebaseHit = async () => {
     const dbUrl = import.meta.env.VITE_FIREBASE_DB_BASE_URL;
 
     // Obtener token para autenticación
-    const token = await getAdminToken();
+    const token = await getAuthToken();
     const authParam = token ? `?auth=${token}` : '';
 
     // P6: Usar transacción atómica para evitar condición de carrera

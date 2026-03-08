@@ -15,7 +15,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import { registrarLog, procesarCursos, formatoFechaHora } from './utils/helpers';
-import { loginAdmin, onAdminAuthChange } from './utils/firebaseAuth';
+import { ensureAuth, loginAdmin, logoutAdmin, onAuthChange, isAdmin } from './utils/firebaseAuth';
 import { trackAppEvent } from './utils/analytics';
 
 const FIREBASE_DB_URL = `${import.meta.env.VITE_FIREBASE_DB_BASE_URL}/docentes/`;
@@ -23,8 +23,6 @@ const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER;
 
 // Fetcher function for SWR
 const fetcher = (...args) => fetch(...args).then(res => res.json());
-
-export { trackAppEvent };
 
 const App = () => {
   const [view, setView] = useState('user');
@@ -51,14 +49,20 @@ const App = () => {
   const [fechaActual, setFechaActual] = useState(new Date());
   const [toast, setToast] = useState({ show: false, msg: '' });
 
+  // Auth Anónima silenciosa: al cargar la app, todos los usuarios obtienen un token
+  // invisible para poder escribir logs y analytics en Firebase.
+  useEffect(() => {
+    ensureAuth().catch(err => console.warn('Anonymous auth failed:', err));
+  }, []);
+
   // Observer de Firebase Auth — persiste la sesión entre recargas
   useEffect(() => {
-    const unsubscribe = onAdminAuthChange((user) => {
-      setIsAdminAuth(!!user);
-      // Si hay sesión activa y el usuario estaba en login, ir al panel admin
-      if (user && view === 'login') setView('admin');
-      // Si la sesión se cerró y estaba en admin, volver a user
-      if (!user && view === 'admin') setView('user');
+    const unsubscribe = onAuthChange((user) => {
+      setIsAdminAuth(user ? isAdmin() : false);
+      // Si un admin inicia sesión y estaba en la pantalla de login, ir al panel
+      if (user && !user.isAnonymous && view === 'login') setView('admin');
+      // Si la sesión admin se cierra y estaba en admin, volver a user
+      if (user && user.isAnonymous && view === 'admin') setView('user');
     });
     return () => unsubscribe();
   }, [view]);
