@@ -88,12 +88,35 @@ export const getAuthToken = async () => {
 };
 
 /**
+ * Determina el rol del usuario actual.
+ * - 'admin': email coincide con el admin configurado (acceso total)
+ * - 'monitor': cualquier otro usuario autenticado con email (solo lectura)
+ * - null: usuario anónimo o sin sesión
+ */
+export const getUserRole = () => {
+    if (!auth || !auth.currentUser) return null;
+    if (auth.currentUser.isAnonymous) return null;
+
+    const adminEmail = (import.meta.env.VITE_ADMIN_EMAIL || '').toLowerCase().trim();
+    const userEmail = (auth.currentUser.email || '').toLowerCase().trim();
+
+    if (adminEmail && userEmail === adminEmail) return 'admin';
+    return 'monitor';
+};
+
+/**
  * Verifica si el usuario actual es un admin autenticado (no anónimo).
+ * Compatible con código existente.
  */
 export const isAdmin = () => {
     if (!auth || !auth.currentUser) return false;
     return !auth.currentUser.isAnonymous;
 };
+
+/**
+ * Verifica si el usuario actual tiene acceso admin completo.
+ */
+export const isFullAdmin = () => getUserRole() === 'admin';
 
 /**
  * Suscribe un callback al cambio de estado de autenticación.

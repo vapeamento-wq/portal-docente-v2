@@ -8,7 +8,8 @@ const FIREBASE_DB_URL = `${import.meta.env.VITE_FIREBASE_DB_BASE_URL}/docentes.j
 
 // MOCK_ANALYTICS has been removed in favor of real Firebase data
 
-const AdminPanel = ({ onBack, onSelectDocente }) => {
+const AdminPanel = ({ onBack, onSelectDocente, userRole = 'monitor' }) => {
+    const isFullAdmin = userRole === 'admin';
     const [uploading, setUploading] = useState(false);
     const [uploadResult, setUploadResult] = useState(null);
     const [docentesList, setDocentesList] = useState([]);
@@ -655,64 +656,73 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                 <div className="flex justify-between items-center mb-8 border-b border-gray-200 dark:border-slate-700 pb-5">
                     <div>
                         <h2 className="text-[#003366] dark:text-blue-400 m-0 text-2xl font-bold">PANEL INTELIGENTE</h2>
-                        <p className="text-gray-500 dark:text-gray-400 mt-1 mb-0">Sincronización y Configuración</p>
+                        <p className="text-gray-500 dark:text-gray-400 mt-1 mb-0">
+                            {isFullAdmin ? 'Sincronización y Configuración' : '📺 Modo Monitor — Solo lectura'}
+                        </p>
                     </div>
-                    <button onClick={onBack} className="cursor-pointer px-6 py-2.5 rounded-full border-none bg-gray-100 dark:bg-slate-700 font-bold text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors">⬅ Volver</button>
+                    <div className="flex gap-3 items-center">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${isFullAdmin ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400'}`}>
+                            {isFullAdmin ? '🔑 Admin' : '👁️ Monitor'}
+                        </span>
+                        <button onClick={onBack} className="cursor-pointer px-6 py-2.5 rounded-full border-none bg-gray-100 dark:bg-slate-700 font-bold text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors">⬅ Salir</button>
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
 
-                    {/* NUEVO: Subida de Excel Mágico */}
-                    <div className="bg-[#f5f9ff] dark:bg-blue-900/20 p-6 rounded-2xl border-2 border-dashed border-[#007bff] text-center flex flex-col justify-center transition-colors">
-                        <h3 className="m-0 mb-3 text-[#1e40af] dark:text-blue-300 text-xl font-bold">📥 Actualizar BD (Desde Excel)</h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Sube el archivo Excel de un programa. El sistema lo analizará y lo fusionará sin borrar los demás programas.</p>
+                    {/* NUEVO: Subida de Excel Mágico (solo admin) */}
+                    {isFullAdmin && (
+                        <div className="bg-[#f5f9ff] dark:bg-blue-900/20 p-6 rounded-2xl border-2 border-dashed border-[#007bff] text-center flex flex-col justify-center transition-colors">
+                            <h3 className="m-0 mb-3 text-[#1e40af] dark:text-blue-300 text-xl font-bold">📥 Actualizar BD (Desde Excel)</h3>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Sube el archivo Excel de un programa. El sistema lo analizará y lo fusionará sin borrar los demás programas.</p>
 
-                        <div className="mb-4 text-left w-full inline-block">
-                            <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Programa Académico:</label>
-                            <select
-                                value={programaSeleccionado}
-                                onChange={(e) => setProgramaSeleccionado(e.target.value)}
-                                disabled={uploading}
-                                className={`w-full p-2.5 rounded-xl border ${!programaSeleccionado ? 'border-red-400 ring-1 ring-red-400' : 'border-gray-300 dark:border-slate-600'} bg-white dark:bg-slate-800 text-sm font-bold text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#007bff]`}
-                            >
-                                <option value="" disabled>-- Selecciona el programa primero --</option>
-                                <option value="SST">Seguridad y Salud en el Trabajo (SST)</option>
-                                <option value="Administración Pública">Administración Pública</option>
-                            </select>
-                        </div>
+                            <div className="mb-4 text-left w-full inline-block">
+                                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Programa Académico:</label>
+                                <select
+                                    value={programaSeleccionado}
+                                    onChange={(e) => setProgramaSeleccionado(e.target.value)}
+                                    disabled={uploading}
+                                    className={`w-full p-2.5 rounded-xl border ${!programaSeleccionado ? 'border-red-400 ring-1 ring-red-400' : 'border-gray-300 dark:border-slate-600'} bg-white dark:bg-slate-800 text-sm font-bold text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#007bff]`}
+                                >
+                                    <option value="" disabled>-- Selecciona el programa primero --</option>
+                                    <option value="SST">Seguridad y Salud en el Trabajo (SST)</option>
+                                    <option value="Administración Pública">Administración Pública</option>
+                                </select>
+                            </div>
 
-                        <input
-                            type="file"
-                            accept=".xlsx, .xls"
-                            onChange={handleFileUpload}
-                            disabled={uploading || !programaSeleccionado}
-                            className={`block mx-auto mb-4 text-sm 
+                            <input
+                                type="file"
+                                accept=".xlsx, .xls"
+                                onChange={handleFileUpload}
+                                disabled={uploading || !programaSeleccionado}
+                                className={`block mx-auto mb-4 text-sm 
                                 file:mr-4 file:py-2 file:px-4
                                 file:rounded-full file:border-0
                                 file:text-sm file:font-semibold
                                 transition-colors ${!programaSeleccionado ? 'opacity-50 cursor-not-allowed file:bg-gray-200 file:text-gray-500 text-gray-400' : 'file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer text-gray-500 dark:file:bg-blue-900/50 dark:file:text-blue-300 dark:text-gray-400'}`}
-                        />
+                            />
 
-                        {!programaSeleccionado && (
-                            <p className="text-xs text-red-500 font-bold mb-2">Paso 1: Selecciona un programa para habilitar la carga.</p>
-                        )}
+                            {!programaSeleccionado && (
+                                <p className="text-xs text-red-500 font-bold mb-2">Paso 1: Selecciona un programa para habilitar la carga.</p>
+                            )}
 
-                        {uploading && (
-                            <div className="flex justify-center items-center gap-2 mb-4 text-[#007bff] dark:text-blue-400 font-bold text-sm">
-                                <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                Analizando y Sincronizando...
-                            </div>
-                        )}
+                            {uploading && (
+                                <div className="flex justify-center items-center gap-2 mb-4 text-[#007bff] dark:text-blue-400 font-bold text-sm">
+                                    <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Analizando y Sincronizando...
+                                </div>
+                            )}
 
-                        {uploadResult && (
-                            <pre className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700 text-sm text-left whitespace-pre-wrap text-gray-800 dark:text-gray-300 mt-2 transition-colors">
-                                {uploadResult}
-                            </pre>
-                        )}
-                    </div>
+                            {uploadResult && (
+                                <pre className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700 text-sm text-left whitespace-pre-wrap text-gray-800 dark:text-gray-300 mt-2 transition-colors">
+                                    {uploadResult}
+                                </pre>
+                            )}
+                        </div>
+                    )}
 
                     {/* Chart 1: Daily Hits */}
                     <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-gray-100 dark:border-slate-700 h-[300px] transition-colors">
@@ -757,65 +767,68 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                     </div>
                 </div>
 
-                {/* NUEVO: Anuncio Global y Mantenimiento */}
-                <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-100 dark:border-slate-700 transition-colors mb-8">
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 border-b border-gray-100 dark:border-slate-700 pb-4">
-                        <h4 className="m-0 text-[#003366] dark:text-blue-400 font-bold text-xl">📢 Anuncios & Mantenimiento</h4>
+                {/* NUEVO: Anuncio Global y Mantenimiento (solo admin) */}
+                {isFullAdmin && (
+                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-100 dark:border-slate-700 transition-colors mb-8">
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 border-b border-gray-100 dark:border-slate-700 pb-4">
+                            <h4 className="m-0 text-[#003366] dark:text-blue-400 font-bold text-xl">📢 Anuncios & Mantenimiento</h4>
 
-                        {/* THE SWITCH */}
-                        <div className="flex items-center gap-3 bg-gray-50 dark:bg-slate-900/50 p-3 rounded-xl border border-gray-200 dark:border-slate-600">
-                            <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Modo Mantenimiento:</span>
-                            <button
-                                onClick={handleToggleMantenimiento}
-                                className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none ${mantenimientoActivo ? 'bg-red-500' : 'bg-gray-300 dark:bg-slate-600'}`}
-                            >
-                                <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${mantenimientoActivo ? 'translate-x-8' : 'translate-x-1'}`} />
-                            </button>
-                            <span className={`text-xs font-bold px-2 py-1 rounded-md ${mantenimientoActivo ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'}`}>
-                                {mantenimientoActivo ? 'ACTIVADO' : 'Inactivo'}
-                            </span>
+                            {/* THE SWITCH */}
+                            <div className="flex items-center gap-3 bg-gray-50 dark:bg-slate-900/50 p-3 rounded-xl border border-gray-200 dark:border-slate-600">
+                                <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Modo Mantenimiento:</span>
+                                <button
+                                    onClick={handleToggleMantenimiento}
+                                    className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none ${mantenimientoActivo ? 'bg-red-500' : 'bg-gray-300 dark:bg-slate-600'}`}
+                                >
+                                    <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${mantenimientoActivo ? 'translate-x-8' : 'translate-x-1'}`} />
+                                </button>
+                                <span className={`text-xs font-bold px-2 py-1 rounded-md ${mantenimientoActivo ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'}`}>
+                                    {mantenimientoActivo ? 'ACTIVADO' : 'Inactivo'}
+                                </span>
+                            </div>
                         </div>
+
+                        <form onSubmit={handleGuardarAnuncio} className="flex flex-col gap-4">
+                            <textarea
+                                value={anuncioGlobal}
+                                onChange={(e) => setAnuncioGlobal(e.target.value)}
+                                placeholder="Escribe un anuncio público aquí. Ej: Bienvenidos al nuevo semestre..."
+                                className="w-full p-4 rounded-xl border border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003366] dark:focus:ring-blue-500 transition-all min-h-[100px] resize-y"
+                            ></textarea>
+
+                            <div className="flex flex-col md:flex-row gap-4 bg-gray-50 dark:bg-slate-900/50 p-4 rounded-xl border border-gray-100 dark:border-slate-700">
+                                <div className="flex-1 flex flex-col gap-1">
+                                    <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Mostrar Desde (Opcional)</label>
+                                    <input
+                                        type="datetime-local"
+                                        value={anuncioInicio}
+                                        onChange={(e) => setAnuncioInicio(e.target.value)}
+                                        className="p-2.5 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white focus:ring-2 focus:ring-[#003366] text-sm"
+                                    />
+                                </div>
+                                <div className="flex-1 flex flex-col gap-1">
+                                    <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Ocultar El (Opcional)</label>
+                                    <input
+                                        type="datetime-local"
+                                        value={anuncioFin}
+                                        onChange={(e) => setAnuncioFin(e.target.value)}
+                                        className="p-2.5 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white focus:ring-2 focus:ring-[#003366] text-sm"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex justify-between items-center mt-2">
+                                <span className="text-xs text-gray-500 dark:text-gray-400 max-w-sm">
+                                    Si dejas las fechas en blanco y guardas un texto, se mostrará <b>inmediatamente</b> y por tiempo indefinido. Borra el texto para desactivarlo por completo.
+                                </span>
+                                <button type="submit" disabled={guardandoAnuncio} className="px-6 py-2.5 bg-[#003366] dark:bg-blue-600 text-white font-bold rounded-xl hover:bg-[#002244] dark:hover:bg-blue-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-md">
+                                    {guardandoAnuncio ? 'Guardando...' : 'Guardar y Publicar'}
+                                </button>
+                            </div>
+                        </form>
                     </div>
 
-                    <form onSubmit={handleGuardarAnuncio} className="flex flex-col gap-4">
-                        <textarea
-                            value={anuncioGlobal}
-                            onChange={(e) => setAnuncioGlobal(e.target.value)}
-                            placeholder="Escribe un anuncio público aquí. Ej: Bienvenidos al nuevo semestre..."
-                            className="w-full p-4 rounded-xl border border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003366] dark:focus:ring-blue-500 transition-all min-h-[100px] resize-y"
-                        ></textarea>
-
-                        <div className="flex flex-col md:flex-row gap-4 bg-gray-50 dark:bg-slate-900/50 p-4 rounded-xl border border-gray-100 dark:border-slate-700">
-                            <div className="flex-1 flex flex-col gap-1">
-                                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Mostrar Desde (Opcional)</label>
-                                <input
-                                    type="datetime-local"
-                                    value={anuncioInicio}
-                                    onChange={(e) => setAnuncioInicio(e.target.value)}
-                                    className="p-2.5 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white focus:ring-2 focus:ring-[#003366] text-sm"
-                                />
-                            </div>
-                            <div className="flex-1 flex flex-col gap-1">
-                                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Ocultar El (Opcional)</label>
-                                <input
-                                    type="datetime-local"
-                                    value={anuncioFin}
-                                    onChange={(e) => setAnuncioFin(e.target.value)}
-                                    className="p-2.5 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white focus:ring-2 focus:ring-[#003366] text-sm"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="flex justify-between items-center mt-2">
-                            <span className="text-xs text-gray-500 dark:text-gray-400 max-w-sm">
-                                Si dejas las fechas en blanco y guardas un texto, se mostrará <b>inmediatamente</b> y por tiempo indefinido. Borra el texto para desactivarlo por completo.
-                            </span>
-                            <button type="submit" disabled={guardandoAnuncio} className="px-6 py-2.5 bg-[#003366] dark:bg-blue-600 text-white font-bold rounded-xl hover:bg-[#002244] dark:hover:bg-blue-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-md">
-                                {guardandoAnuncio ? 'Guardando...' : 'Guardar y Publicar'}
-                            </button>
-                        </div>
-                    </form>
-                </div>
+                )}
 
                 {/* TAB NAVIGATION */}
                 <div className="flex bg-gray-100 dark:bg-slate-700/50 p-1 rounded-xl mb-6 max-w-2xl mx-auto border border-gray-200 dark:border-slate-600 shadow-inner">
@@ -827,10 +840,12 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                         onClick={() => setActiveTab('stats')}
                         className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${activeTab === 'stats' ? 'bg-white dark:bg-slate-800 text-[#003366] dark:text-blue-400 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
                     >📊 Estadísticas Avanzadas</button>
-                    <button
-                        onClick={() => setActiveTab('logs')}
-                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${activeTab === 'logs' ? 'bg-white dark:bg-slate-800 text-[#003366] dark:text-blue-400 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
-                    >📝 Auditoría de Logs</button>
+                    {isFullAdmin && (
+                        <button
+                            onClick={() => setActiveTab('logs')}
+                            className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${activeTab === 'logs' ? 'bg-white dark:bg-slate-800 text-[#003366] dark:text-blue-400 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                        >📝 Auditoría de Logs</button>
+                    )}
                 </div>
 
                 {activeTab === 'radar' && (

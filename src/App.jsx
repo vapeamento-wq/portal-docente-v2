@@ -15,7 +15,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import { registrarLog, procesarCursos, formatoFechaHora } from './utils/helpers';
-import { ensureAuth, loginAdmin, logoutAdmin, onAuthChange, isAdmin } from './utils/firebaseAuth';
+import { ensureAuth, loginAdmin, logoutAdmin, onAuthChange, isAdmin, getUserRole } from './utils/firebaseAuth';
 import { trackAppEvent } from './utils/analytics';
 
 const FIREBASE_DB_URL = `${import.meta.env.VITE_FIREBASE_DB_BASE_URL}/docentes/`;
@@ -282,8 +282,9 @@ const App = () => {
   if (view === 'admin') {
     return (
       <AdminPanel
-        onBack={() => setView('user')}
+        onBack={() => { logoutAdmin(); setView('user'); }}
         onSelectDocente={handleAdminSelectDocente}
+        userRole={getUserRole()}
       />
     );
   }
