@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell } from 'recharts';
 import { URL_TU_EXCEL_MAESTRO, URL_FIREBASE_CONSOLE, procesarCursos, registrarLog } from '../utils/helpers';
+import { getAuthToken } from '../utils/firebaseAuth';
 
 const FIREBASE_DB_URL = `${import.meta.env.VITE_FIREBASE_DB_BASE_URL}/docentes.json`;
 
@@ -65,7 +66,7 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
                 }
 
                 // Fetch Global Announcement
-                const secretAuth = import.meta.env.VITE_FIREBASE_SECRET;
+                const secretAuth = await getAuthToken();
                 const resAnuncio = await fetch(`${dbBaseUrl}/config/anuncio.json`);
                 const dataAnuncio = await resAnuncio.json();
                 if (dataAnuncio) {
@@ -277,7 +278,7 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
 
                 let finalDB = {};
                 try {
-                    const secretAuth = import.meta.env.VITE_FIREBASE_SECRET;
+                    const secretAuth = await getAuthToken();
                     const resCurrent = await fetch(`${FIREBASE_DB_URL}?auth=${secretAuth}`, { cache: 'no-store' }); // Evitar caché del navegador
                     const currentData = await resCurrent.json();
 
@@ -325,7 +326,7 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
 
                 setUploadResult(`🚀 Subiendo base fusionada: ${countDocentesTotales} docentes en total a Firebase...`);
                 // Sincronizar directo a Firebase con autenticación secreta
-                const secretAuth = import.meta.env.VITE_FIREBASE_SECRET;
+                const secretAuth = await getAuthToken();
                 const res = await fetch(`${FIREBASE_DB_URL}?auth=${secretAuth}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
@@ -601,7 +602,7 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
         setMantenimientoActivo(nuevoEstado);
 
         try {
-            const secretAuth = import.meta.env.VITE_FIREBASE_SECRET;
+            const secretAuth = await getAuthToken();
             const dbBaseUrl = import.meta.env.VITE_FIREBASE_DB_BASE_URL;
             await fetch(`${dbBaseUrl}/config/anuncio.json?auth=${secretAuth}`, {
                 method: 'PUT',
@@ -625,7 +626,7 @@ const AdminPanel = ({ onBack, onSelectDocente }) => {
         e.preventDefault();
         setGuardandoAnuncio(true);
         try {
-            const secretAuth = import.meta.env.VITE_FIREBASE_SECRET;
+            const secretAuth = await getAuthToken();
             const dbBaseUrl = import.meta.env.VITE_FIREBASE_DB_BASE_URL;
             await fetch(`${dbBaseUrl}/config/anuncio.json?auth=${secretAuth}`, {
                 method: 'PUT',
