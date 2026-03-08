@@ -3,20 +3,20 @@
         "docentes": {
             "$docenteId": {
                 ".read": true,
-                ".write": "auth !== null && auth.token.email_verified === true"
+                ".write": "auth !== null && auth.provider !== 'anonymous'"
             }
         },
         "logs": {
-            ".read": "auth !== null && auth.token.email_verified === true",
+            ".read": "auth !== null && auth.provider !== 'anonymous'",
             ".write": "auth !== null"
         },
         "analytics": {
-            ".read": "auth !== null && auth.token.email_verified === true",
+            ".read": "auth !== null && auth.provider !== 'anonymous'",
             ".write": "auth !== null"
         },
         "config": {
             ".read": true,
-            ".write": "auth !== null && auth.token.email_verified === true"
+            ".write": "auth !== null && auth.provider !== 'anonymous'"
         }
     }
 }
