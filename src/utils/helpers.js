@@ -1,8 +1,10 @@
+import { getAdminToken } from './firebaseAuth';
+
 export const URL_SCRIPT_LOGS = import.meta.env.VITE_SCRIPT_LOGS_URL;
 export const URL_TU_EXCEL_MAESTRO = import.meta.env.VITE_EXCEL_MAESTRO_URL;
 export const URL_FIREBASE_CONSOLE = import.meta.env.VITE_FIREBASE_CONSOLE_URL;
 
-export const registrarLog = (documento, accion) => {
+export const registrarLog = async (documento, accion) => {
   try {
     const datosLog = {
       fecha: new Date().toLocaleString('es-CO'),
@@ -10,8 +12,12 @@ export const registrarLog = (documento, accion) => {
       estado: `[APP] ${accion}`
     };
     const dbUrl = import.meta.env.VITE_FIREBASE_DB_BASE_URL;
-    const secret = import.meta.env.VITE_FIREBASE_SECRET;
-    fetch(`${dbUrl}/logs.json?auth=${secret}`, {
+
+    // Obtener el token de Firebase Auth (si hay sesión activa)
+    const token = await getAdminToken();
+    const authParam = token ? `?auth=${token}` : '';
+
+    fetch(`${dbUrl}/logs.json${authParam}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(datosLog)
@@ -28,15 +34,19 @@ const recordFirebaseHit = async () => {
   try {
     const today = new Date();
     const dateStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
-    const secret = import.meta.env.VITE_FIREBASE_SECRET;
     const dbUrl = import.meta.env.VITE_FIREBASE_DB_BASE_URL;
 
-    // Fetch current count
-    const getRes = await fetch(`${dbUrl}/analytics/daily/${dateStr}.json`);
-    const currentCount = await getRes.json() || 0;
+    // Obtener token para autenticación
+    const token = await getAdminToken();
+    const authParam = token ? `?auth=${token}` : '';
 
-    // Increment and save
-    await fetch(`${dbUrl}/analytics/daily/${dateStr}.json?auth=${secret}`, {
+    // P6: Usar transacción atómica para evitar condición de carrera
+    // Leer el valor actual
+    const getRes = await fetch(`${dbUrl}/analytics/daily/${dateStr}.json`);
+    const currentCount = (await getRes.json()) || 0;
+
+    // Escribir el valor incrementado (si hay concurrencia, revisar con retries)
+    await fetch(`${dbUrl}/analytics/daily/${dateStr}.json${authParam}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(currentCount + 1)

@@ -14,57 +14,25 @@ import WelcomeScreen from './components/WelcomeScreen';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
-import { registrarLog, procesarCursos, formatoFechaHora, URL_SCRIPT_LOGS } from './utils/helpers';
-import { initializeApp } from "firebase/app";
-import { getAnalytics, logEvent } from "firebase/analytics";
-
-// --- ⚡ CONFIGURACIÓN MAESTRA (V21.0 - CON LOGS DE ERROR Y ANALYTICS) ---
-
-// Configuración opcional de Firebase para Analytics (Si no envías VITE_FIREBASE_MEASUREMENT_ID, no hace nada y no rompe la app)
-const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "dummy",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "dummy",
-  databaseURL: import.meta.env.VITE_FIREBASE_DB_BASE_URL,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "dummy",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "dummy",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "dummy",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "dummy",
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
-};
-
-let analytics = null;
-try {
-  // Solo iniciar si measurementId existe.
-  if (firebaseConfig.measurementId && typeof window !== "undefined") {
-    const app = initializeApp(firebaseConfig);
-    analytics = getAnalytics(app);
-    console.log("📊 Google Analytics Inicializado");
-  }
-} catch (e) {
-  console.warn("⚠️ Analytics no pudo iniciar correctamente:", e);
-}
-
-// Custom wrapper to easily track events anywhere
-export const trackAppEvent = (eventName, params = {}) => {
-  if (analytics) {
-    try {
-      logEvent(analytics, eventName, params);
-    } catch (e) {
-      console.warn("Analytics event failed", e);
-    }
-  }
-};
+import { registrarLog, procesarCursos, formatoFechaHora } from './utils/helpers';
+import { loginAdmin, onAdminAuthChange } from './utils/firebaseAuth';
+import { trackAppEvent } from './utils/analytics';
 
 const FIREBASE_DB_URL = `${import.meta.env.VITE_FIREBASE_DB_BASE_URL}/docentes/`;
 const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER;
-const ADMIN_PASS = import.meta.env.VITE_ADMIN_PASS;
 
 // Fetcher function for SWR
 const fetcher = (...args) => fetch(...args).then(res => res.json());
 
+export { trackAppEvent };
+
 const App = () => {
   const [view, setView] = useState('user');
-  const [passInput, setPassInput] = useState('');
+
+  // Estado de autenticación del administrador (manejado por Firebase Auth)
+  const [isAdminAuth, setIsAdminAuth] = useState(false);
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginError, setLoginError] = useState('');
 
   // Estados Usuario
   const [searchTerm, setSearchTerm] = useState('');
@@ -82,6 +50,18 @@ const App = () => {
 
   const [fechaActual, setFechaActual] = useState(new Date());
   const [toast, setToast] = useState({ show: false, msg: '' });
+
+  // Observer de Firebase Auth — persiste la sesión entre recargas
+  useEffect(() => {
+    const unsubscribe = onAdminAuthChange((user) => {
+      setIsAdminAuth(!!user);
+      // Si hay sesión activa y el usuario estaba en login, ir al panel admin
+      if (user && view === 'login') setView('admin');
+      // Si la sesión se cerró y estaba en admin, volver a user
+      if (!user && view === 'admin') setView('user');
+    });
+    return () => unsubscribe();
+  }, [view]);
 
   // SWR Hook para data fetching
   const { data: rawData, error, isLoading } = useSWR(
@@ -239,7 +219,25 @@ const App = () => {
     setView('user');
   };
 
-  const [isAdminAuth, setIsAdminAuth] = useState(localStorage.getItem('isAdminAuth') === 'true');
+  // --- AUTENTICACIÓN ADMINISTRADOR (Firebase Auth) ---
+  const handleLogin = async (email, password) => {
+    setLoginLoading(true);
+    setLoginError('');
+    try {
+      await loginAdmin(email, password);
+      setView('admin'); // El observer onAdminAuthChange también lo detectará
+    } catch (err) {
+      // Firebase devuelve códigos de error estandar
+      const msg = err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password'
+        ? 'Correo o contraseña incorrectos.'
+        : err.code === 'auth/too-many-requests'
+          ? 'Demasiados intentos. Intenta más tarde.'
+          : 'Error de autenticación. Intenta de nuevo.';
+      setLoginError(msg);
+    } finally {
+      setLoginLoading(false);
+    }
+  };
 
   const handleReset = () => {
     localStorage.removeItem('portal_docente_id'); // Borrar ID
@@ -266,16 +264,6 @@ const App = () => {
 
   const handleProgramCancel = () => {
     handleReset();
-  };
-
-  const handleLogin = (e) => {
-    e.preventDefault();
-    if (passInput === ADMIN_PASS) {
-      setIsAdminAuth(true);
-      localStorage.setItem('isAdminAuth', 'true');
-      setView('admin');
-    }
-    else alert("Contraseña incorrecta");
   };
 
   // Filtrar los cursos basados en el programa seleccionado (si existe)
@@ -311,9 +299,9 @@ const App = () => {
       {view === 'login' && (
         <LoginModal
           onSubmit={handleLogin}
-          passInput={passInput}
-          setPassInput={setPassInput}
           onCancel={() => setView('user')}
+          loading={loginLoading}
+          error={loginError}
         />
       )}
 

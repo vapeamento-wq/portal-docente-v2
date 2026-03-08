@@ -1,0 +1,22 @@
+{
+    "rules": {
+        "docentes": {
+            "$docenteId": {
+                ".read": true,
+                ".write": "auth !== null && auth.token.email_verified === true"
+            }
+        },
+        "logs": {
+            ".read": "auth !== null && auth.token.email_verified === true",
+            ".write": "auth !== null"
+        },
+        "analytics": {
+            ".read": "auth !== null && auth.token.email_verified === true",
+            ".write": "auth !== null"
+        },
+        "config": {
+            ".read": true,
+            ".write": "auth !== null && auth.token.email_verified === true"
+        }
+    }
+}

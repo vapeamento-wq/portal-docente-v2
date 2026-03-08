@@ -1,5 +1,5 @@
 import React from 'react';
-import { trackAppEvent } from '../App';
+import { trackAppEvent } from '../utils/analytics';
 import { registrarLog } from '../utils/helpers';
 
 const Header = ({ onReset, docente, searchTerm, setSearchTerm, onSearch, loading }) => {
