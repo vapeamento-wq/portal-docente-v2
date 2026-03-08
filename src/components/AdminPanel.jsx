@@ -1162,7 +1162,15 @@ const AdminPanel = ({ onBack, onSelectDocente, userRole = 'monitor' }) => {
                     cutoff.setDate(cutoff.getDate() - logDays);
                     const filteredLogs = logs.filter(log => {
                         if (!log.fecha) return true;
-                        try { const d = new Date(log.fecha); return !isNaN(d) && d >= cutoff; } catch { return true; }
+                        try {
+                            // Intentar parsear formato español: "7/3/2026, 11:57:21 p.m." → "3/7/2026 11:57:21 PM"
+                            const normalizada = log.fecha
+                                .replace(/(\d+)\/(\d+)\/(\d+)/, (_, d, m, y) => `${m}/${d}/${y}`)
+                                .replace('p.m.', 'PM').replace('a.m.', 'AM');
+                            const d = new Date(normalizada);
+                            if (isNaN(d)) return true; // Si no parsea, incluirlo
+                            return d >= cutoff;
+                        } catch { return true; }
                     });
                     const handleExportLogs = () => {
                         const rows = filteredLogs.map(log => ({
