@@ -229,14 +229,16 @@ const App = () => {
     setLoginError('');
     try {
       await loginAdmin(email, password);
-      setView('admin'); // El observer onAdminAuthChange también lo detectará
+      setView('admin');
     } catch (err) {
-      // Firebase devuelve códigos de error estandar
+      console.error('Login error:', err.code, err.message);
       const msg = err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password'
         ? 'Correo o contraseña incorrectos.'
         : err.code === 'auth/too-many-requests'
           ? 'Demasiados intentos. Intenta más tarde.'
-          : 'Error de autenticación. Intenta de nuevo.';
+          : err.code === 'auth/unauthorized-domain'
+            ? 'Dominio no autorizado. Agrega este dominio en Firebase Console → Auth → Configuración → Dominios autorizados.'
+            : `Error: ${err.code || err.message}`;
       setLoginError(msg);
     } finally {
       setLoginLoading(false);
