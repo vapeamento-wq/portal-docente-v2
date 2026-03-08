@@ -1,21 +1,23 @@
 {
     "rules": {
         "docentes": {
-            "$docenteId": {
-                ".read": true,
-                ".write": "auth !== null && auth.provider !== 'anonymous'"
-            }
+            ".read": true,
+            ".write": "auth !== null && auth.provider !== 'anonymous'"
         },
         "logs": {
             ".read": "auth !== null && auth.provider !== 'anonymous'",
             ".write": "auth !== null"
         },
         "analytics": {
-            ".read": "auth !== null && auth.provider !== 'anonymous'",
+            ".read": true,
             ".write": "auth !== null"
         },
         "config": {
             ".read": true,
+            ".write": "auth !== null && auth.provider !== 'anonymous'"
+        },
+        "estudiantes": {
+            ".read": "auth !== null && auth.provider !== 'anonymous'",
             ".write": "auth !== null && auth.provider !== 'anonymous'"
         }
     }
