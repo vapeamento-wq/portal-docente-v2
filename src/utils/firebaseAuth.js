@@ -17,28 +17,45 @@ const firebaseConfig = {
     appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-// Singleton: reutiliza la app existente si ya fue inicializada
-const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-export const auth = getAuth(app);
+// Inicialización defensiva: si falta la API key, no crashear la app entera
+let auth = null;
+try {
+    if (firebaseConfig.apiKey) {
+        const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+        auth = getAuth(app);
+    } else {
+        console.warn('⚠️ VITE_FIREBASE_API_KEY no configurada. Auth deshabilitado.');
+    }
+} catch (e) {
+    console.error('Error inicializando Firebase Auth:', e);
+}
+
+export { auth };
 
 /**
  * Autenticación anónima silenciosa.
  * Se ejecuta al cargar la app para que todos los usuarios tengan un token
  * válido que les permita escribir en logs y analytics.
  * Si ya hay una sesión activa (admin o anónima), no hace nada.
+ * Si Auth no está disponible, no hace nada (graceful degradation).
  */
 export const ensureAuth = async () => {
+    if (!auth) return null;
     if (auth.currentUser) return auth.currentUser;
-    const credential = await signInAnonymously(auth);
-    return credential.user;
+    try {
+        const credential = await signInAnonymously(auth);
+        return credential.user;
+    } catch (e) {
+        console.warn('Anonymous auth failed (app sigue funcionando):', e.message);
+        return null;
+    }
 };
 
 /**
  * Inicia sesión del administrador con email y contraseña.
- * Esto "promueve" la sesión anónima a una sesión con identidad real.
- * Las credenciales se validan del lado de Firebase, nunca del cliente.
  */
 export const loginAdmin = async (email, password) => {
+    if (!auth) throw new Error('Firebase Auth no está configurado.');
     const credential = await signInWithEmailAndPassword(auth, email, password);
     const idToken = await credential.user.getIdToken();
     return { user: credential.user, idToken };
@@ -46,35 +63,46 @@ export const loginAdmin = async (email, password) => {
 
 /**
  * Cierra la sesión del administrador y vuelve a sesión anónima.
- * Así el usuario nunca pierde capacidad de escribir logs.
  */
 export const logoutAdmin = async () => {
+    if (!auth) return;
     await signOut(auth);
-    // Regresar a sesión anónima para que los logs sigan funcionando
-    await signInAnonymously(auth);
+    try {
+        await signInAnonymously(auth);
+    } catch (e) {
+        console.warn('Re-anonymous auth failed:', e.message);
+    }
 };
 
 /**
  * Obtiene el ID Token actual del usuario autenticado (anónimo o admin).
- * Retorna null si por alguna razón no hay sesión.
+ * Retorna null si no hay sesión o Auth no está disponible.
  */
 export const getAuthToken = async () => {
-    const user = auth.currentUser;
-    if (!user) return null;
-    return user.getIdToken();
+    if (!auth || !auth.currentUser) return null;
+    try {
+        return await auth.currentUser.getIdToken();
+    } catch (e) {
+        return null;
+    }
 };
 
 /**
  * Verifica si el usuario actual es un admin autenticado (no anónimo).
  */
 export const isAdmin = () => {
-    const user = auth.currentUser;
-    return user && !user.isAnonymous;
+    if (!auth || !auth.currentUser) return false;
+    return !auth.currentUser.isAnonymous;
 };
 
 /**
  * Suscribe un callback al cambio de estado de autenticación.
- * @param {Function} callback - (user | null)
- * @returns {Function} unsubscribe
  */
-export const onAuthChange = (callback) => onAuthStateChanged(auth, callback);
+export const onAuthChange = (callback) => {
+    if (!auth) {
+        // Si Auth no está disponible, ejecutar callback con null y retornar noop
+        callback(null);
+        return () => { };
+    }
+    return onAuthStateChanged(auth, callback);
+};

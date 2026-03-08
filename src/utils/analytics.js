@@ -12,13 +12,14 @@ const firebaseConfig = {
     measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
-// Singleton: reutilizar app si ya existe
-const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-
+// Singleton defensivo: si falta la API key, analytics simplemente no se activa
 let analytics = null;
 try {
-    if (firebaseConfig.measurementId && typeof window !== 'undefined') {
-        analytics = getAnalytics(app);
+    if (firebaseConfig.apiKey && typeof window !== 'undefined') {
+        const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+        if (firebaseConfig.measurementId) {
+            analytics = getAnalytics(app);
+        }
     }
 } catch (e) {
     console.warn('Analytics no pudo iniciar:', e);
