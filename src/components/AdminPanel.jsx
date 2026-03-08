@@ -26,6 +26,7 @@ const AdminPanel = ({ onBack, onSelectDocente, userRole = 'monitor' }) => {
     const [fullLogs, setFullLogs] = useState([]); // Para estadísticas completas
     const [activeTab, setActiveTab] = useState('radar'); // 'radar', 'logs', 'stats'
     const [programaSeleccionado, setProgramaSeleccionado] = useState(''); // Obligar a seleccionar
+    const [logDays, setLogDays] = useState(7); // Filtro período de logs
     const [filtroRadarPrograma, setFiltroRadarPrograma] = useState('TODOS'); // Filtro para el radar
 
     // --- ESTADOS PARA ESTADÍSTICAS ---
@@ -1157,19 +1158,12 @@ const AdminPanel = ({ onBack, onSelectDocente, userRole = 'monitor' }) => {
                 )}
 
                 {activeTab === 'logs' && (() => {
-                    const [logDays, setLogDays] = React.useState(7);
                     const cutoff = new Date();
                     cutoff.setDate(cutoff.getDate() - logDays);
-
                     const filteredLogs = logs.filter(log => {
                         if (!log.fecha) return true;
-                        try {
-                            // Parsear fecha: acepta tanto ISO como la fecha local del portal
-                            const d = new Date(log.fecha);
-                            return !isNaN(d) && d >= cutoff;
-                        } catch { return true; }
+                        try { const d = new Date(log.fecha); return !isNaN(d) && d >= cutoff; } catch { return true; }
                     });
-
                     const handleExportLogs = () => {
                         const rows = filteredLogs.map(log => ({
                             'Fecha / Hora': log.fecha || 'Sin fecha',
@@ -1182,7 +1176,6 @@ const AdminPanel = ({ onBack, onSelectDocente, userRole = 'monitor' }) => {
                         XLSX.utils.book_append_sheet(wb, ws, `Logs ${logDays}d`);
                         XLSX.writeFile(wb, `Logs_Portal_Ultimos${logDays}dias_${new Date().toISOString().slice(0, 10)}.xlsx`);
                     };
-
                     return (
                         <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-100 dark:border-slate-700 transition-colors fade-in-up">
                             <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
@@ -1190,20 +1183,14 @@ const AdminPanel = ({ onBack, onSelectDocente, userRole = 'monitor' }) => {
                                     📝 Auditoría de Logs <span className="text-sm font-normal text-gray-400">({filteredLogs.length} registros)</span>
                                 </h4>
                                 <div className="flex items-center gap-3">
-                                    <select
-                                        value={logDays}
-                                        onChange={e => setLogDays(Number(e.target.value))}
-                                        className="px-4 py-2 rounded-xl border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm font-bold text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-pointer"
-                                    >
+                                    <select value={logDays} onChange={e => setLogDays(Number(e.target.value))}
+                                        className="px-4 py-2 rounded-xl border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm font-bold text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-pointer">
                                         <option value={7}>Últimos 7 días</option>
                                         <option value={15}>Últimos 15 días</option>
                                         <option value={30}>Últimos 30 días</option>
                                     </select>
-                                    <button
-                                        onClick={handleExportLogs}
-                                        disabled={filteredLogs.length === 0}
-                                        className="flex items-center gap-2 px-5 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-colors shadow-md text-sm cursor-pointer"
-                                    >
+                                    <button onClick={handleExportLogs} disabled={filteredLogs.length === 0}
+                                        className="flex items-center gap-2 px-5 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-colors shadow-md text-sm cursor-pointer">
                                         📥 Exportar Excel
                                     </button>
                                 </div>
@@ -1230,9 +1217,7 @@ const AdminPanel = ({ onBack, onSelectDocente, userRole = 'monitor' }) => {
                                                             log.estado?.includes('Zoom') || log.estado?.includes('Unido') ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
                                                                 log.estado?.includes('Mini Clips') ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
                                                                     'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                                                            }`}>
-                                                            {log.estado || 'Desconocido'}
-                                                        </span>
+                                                            }`}>{log.estado || 'Desconocido'}</span>
                                                     </td>
                                                 </tr>
                                             ))
@@ -1243,6 +1228,8 @@ const AdminPanel = ({ onBack, onSelectDocente, userRole = 'monitor' }) => {
                         </div>
                     );
                 })()}
+
+
 
             </div>
         </div>
