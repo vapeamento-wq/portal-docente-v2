@@ -56,7 +56,7 @@ const Header = ({ onReset, docente, searchTerm, setSearchTerm, onSearch, loading
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
                 maxLength={15}
-                className="p-3 px-5 rounded-full border-none outline-none text-base w-full md:w-[200px] bg-transparent dark:text-white placeholder:text-gray-400"
+                className="p-3 px-5 rounded-full border-none outline-none text-base w-full md:w-[200px] bg-transparent text-[#003366] dark:text-white placeholder:text-gray-400"
               />
               <button
                 type="submit"
