@@ -137,9 +137,13 @@ export const procesarCursos = (cursos) => {
     let lastValidStatus = 'future'; // Fallback logical if no previous date exists
 
     semanasRaw.forEach((texto, i) => {
-      // Basic validation
       if (i >= 16) return;
-      if (!texto || texto.length < 5 || texto.startsWith("-") || texto.toLowerCase().includes("pendiente")) return;
+      if (!texto) return;
+      const cleanText = String(texto).trim();
+      // Skip placeholders
+      if (!cleanText || cleanText === "-" || cleanText === "." || cleanText.toLowerCase() === "pendiente") return;
+      // Skip short generic texts without numbers (unless it's a known keyword)
+      if (cleanText.length < 5 && !cleanText.match(/\d/)) return;
 
       // --- 1. Parsing Logic ---
       let fechaRaw = "";
