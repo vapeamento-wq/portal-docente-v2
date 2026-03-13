@@ -80,7 +80,7 @@ const HeroCard = ({ cursoActivo }) => {
                     <h1 className="m-0 text-xl md:text-2xl font-black tracking-tight leading-tight">{cursoActivo.materia}</h1>
                     <div className="text-xs md:text-sm opacity-80 font-bold uppercase tracking-wider mt-1">{cursoActivo.grupo}</div>
                 </div>
-                {progress > 0 && (
+                {progress >= 0 && (
                     <div className="flex items-center gap-3 bg-white/10 px-3 py-1.5 rounded-full border border-white/10 backdrop-blur-sm">
                         <div className="text-sm font-black">{progress}%</div>
                         <div className="w-16 h-1.5 bg-black/30 rounded-full overflow-hidden">
@@ -97,11 +97,11 @@ const HeroCard = ({ cursoActivo }) => {
 
             <div className="flex items-center gap-6 mt-4 pt-4 border-t border-white/10">
                 <div className="flex items-center gap-2 text-[10px] md:text-xs">
-                    <span className="opacity-60 font-bold">INICIO:</span>
+                    <span className="opacity-60 font-bold uppercase">Inicio:</span>
                     <strong className="font-bold">{formatHeaderDate(cursoActivo.fInicio)}</strong>
                 </div>
                 <div className="flex items-center gap-2 text-[10px] md:text-xs">
-                    <span className="opacity-60 font-bold">FIN:</span>
+                    <span className="opacity-60 font-bold uppercase">Fin:</span>
                     <strong className="font-bold">{formatHeaderDate(cursoActivo.fFin)}</strong>
                 </div>
             </div>

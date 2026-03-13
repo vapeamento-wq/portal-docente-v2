@@ -132,6 +132,11 @@ const App = () => {
     return () => clearInterval(timer);
   }, []);
 
+  // Reset scroll to top when course changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [selectedCursoIdx]);
+
   const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
 
   // Fetch Global Announcement & Maintenance Mode periodically
