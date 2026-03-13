@@ -140,8 +140,9 @@ export const procesarCursos = (cursos) => {
       if (i >= 16) return;
       if (!texto) return;
       const cleanText = String(texto).trim();
-      // Skip placeholders
-      if (!cleanText || cleanText === "-" || cleanText === "." || cleanText.toLowerCase() === "pendiente") return;
+      const cleanLower = cleanText.toLowerCase();
+      // Skip placeholders and block notices that don't have actual scheduling
+      if (!cleanText || cleanText === "-" || cleanText === "." || cleanLower === "pendiente" || cleanLower.includes("programado para el bloque")) return;
       // Skip short generic texts without numbers (unless it's a known keyword)
       if (cleanText.length < 5 && !cleanText.match(/\d/)) return;
 
