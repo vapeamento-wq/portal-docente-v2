@@ -48,9 +48,11 @@ const Sidebar = ({ docente, selectedCursoIdx, setSelectedCursoIdx }) => {
                             {c.programa && (
                                 <div className={`text-[0.65rem] px-2 py-0.5 rounded-md mt-2 font-bold inline-block transition-colors ${c.programa === 'SST'
                                         ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300 border border-orange-200 dark:border-orange-800/50'
-                                        : 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50'
+                                        : c.programa === 'SN'
+                                            ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300 border border-purple-200 dark:border-purple-800/50'
+                                            : 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50'
                                     }`}>
-                                    {c.programa === 'SST' ? 'Admin. en SST' : 'Admin. Pública'}
+                                    {c.programa === 'SST' ? 'Admin. en SST' : c.programa === 'SN' ? 'Semestre de Nivelación' : 'Admin. Pública'}
                                 </div>
                             )}
                         </div>

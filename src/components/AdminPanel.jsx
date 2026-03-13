@@ -221,8 +221,11 @@ const AdminPanel = ({ onBack, onSelectDocente, userRole = 'monitor' }) => {
 
                     if (!documento || !nombreProfesor || !asignatura) continue;
 
-                    // Limpiar cédula
-                    documento = String(documento).replace(/\D/g, '');
+                    // Limpiar cédula (manejar números, strings y notación científica de Excel)
+                    documento = String(documento).includes('E+') 
+                        ? Number(documento).toLocaleString('fullwide', {useGrouping:false}) 
+                        : String(documento).replace(/\D/g, '');
+                    
                     if (!documento) continue;
 
                     // Extraer los datos del curso
@@ -688,6 +691,7 @@ const AdminPanel = ({ onBack, onSelectDocente, userRole = 'monitor' }) => {
                                     <option value="" disabled>-- Selecciona el programa primero --</option>
                                     <option value="SST">Seguridad y Salud en el Trabajo (SST)</option>
                                     <option value="Administración Pública">Administración Pública</option>
+                                    <option value="SN">Semestre de Nivelación (SN)</option>
                                 </select>
                             </div>
 
@@ -751,11 +755,22 @@ const AdminPanel = ({ onBack, onSelectDocente, userRole = 'monitor' }) => {
                                 Bases de Datos Cargadas
                             </h4>
                             <div className="space-y-3">
-                                {['SST', 'Administración Pública'].map(prog => {
+                                {['SST', 'Administración Pública', 'SN'].map(prog => {
                                     const stats = programStats[prog] || { docentesIDs: new Set(), cursos: 0 };
+                                    let progLabel = prog;
+                                    let colorClasses = 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800/50';
+                                    
+                                    if (prog === 'SST') {
+                                        progLabel = 'SST';
+                                        colorClasses = 'bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800/50';
+                                    } else if (prog === 'SN') {
+                                        progLabel = 'Semestre de Nivelación';
+                                        colorClasses = 'bg-purple-50 border-purple-200 dark:bg-purple-900/20 dark:border-purple-800/50';
+                                    }
+
                                     return (
-                                        <div key={prog} className={`p-3 rounded-lg border ${prog === 'SST' ? 'bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800/50' : 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800/50'}`}>
-                                            <div className="font-bold text-sm text-gray-800 dark:text-gray-200 mb-1">{prog === 'SST' ? 'SST' : prog}</div>
+                                        <div key={prog} className={`p-3 rounded-lg border ${colorClasses}`}>
+                                            <div className="font-bold text-sm text-gray-800 dark:text-gray-200 mb-1">{progLabel}</div>
                                             <div className="flex gap-4 text-xs font-medium">
                                                 <span className="text-gray-600 dark:text-gray-400">👤 {stats.docentesIDs.size} Profes</span>
                                                 <span className="text-gray-600 dark:text-gray-400">📚 {stats.cursos} Cursos</span>
