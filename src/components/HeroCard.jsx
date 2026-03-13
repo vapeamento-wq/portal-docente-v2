@@ -70,46 +70,38 @@ const HeroCard = ({ cursoActivo }) => {
 
     return (
         <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="sticky top-6 z-30 bg-gradient-to-br from-[#003366] to-[#004080] text-white p-6 md:p-10 rounded-[30px] relative overflow-hidden mb-6 shadow-[0_20px_40px_rgba(0,51,102,0.3)] border border-white/10"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4 }}
+            className="bg-gradient-to-r from-[#003366] to-[#004080] text-white p-5 md:p-6 rounded-2xl relative overflow-hidden shadow-lg border border-white/10"
         >
-            <div className="flex justify-between items-end">
-                <div>
-                    <h1 className="m-0 mb-1 text-3xl md:text-4xl font-extrabold tracking-tight">{cursoActivo.materia}</h1>
-                    <div className="text-lg md:text-xl opacity-90 font-medium">{cursoActivo.grupo}</div>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                <div className="flex-1">
+                    <h1 className="m-0 text-xl md:text-2xl font-black tracking-tight leading-tight">{cursoActivo.materia}</h1>
+                    <div className="text-xs md:text-sm opacity-80 font-bold uppercase tracking-wider mt-1">{cursoActivo.grupo}</div>
                 </div>
                 {progress > 0 && (
-                    <div className="hidden sm:block text-right">
-                        <div className="text-2xl font-bold">{progress}%</div>
-                        <div className="text-[10px] uppercase tracking-widest opacity-70">Progreso</div>
+                    <div className="flex items-center gap-3 bg-white/10 px-3 py-1.5 rounded-full border border-white/10 backdrop-blur-sm">
+                        <div className="text-sm font-black">{progress}%</div>
+                        <div className="w-16 h-1.5 bg-black/30 rounded-full overflow-hidden">
+                            <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${progress}%` }}
+                                transition={{ duration: 1 }}
+                                className="h-full bg-gradient-to-r from-[#db9b32] to-[#f4b953]"
+                            />
+                        </div>
                     </div>
                 )}
             </div>
 
-            <div className="mt-6">
-                <div className="flex justify-between text-xs mb-2 opacity-80 font-bold uppercase tracking-wider">
-                    <span>Avance del Curso</span>
-                    <span>{progress}%</span>
-                </div>
-                <div className="w-full h-2.5 bg-black/20 rounded-full overflow-hidden backdrop-blur-sm border border-white/5">
-                    <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${progress}%` }}
-                        transition={{ duration: 1, delay: 0.5 }}
-                        className="h-full bg-gradient-to-r from-[#db9b32] to-[#f4b953] shadow-[0_0_15px_rgba(219,155,50,0.4)]"
-                    />
-                </div>
-            </div>
-
-            <div className="flex gap-4 md:gap-8 mt-6 flex-wrap bg-white/10 p-3 md:p-4 rounded-2xl backdrop-blur-md border border-white/10">
-                <div className="flex items-center gap-2 text-sm">
-                    <span className="opacity-70">Inicio:</span>
+            <div className="flex items-center gap-6 mt-4 pt-4 border-t border-white/10">
+                <div className="flex items-center gap-2 text-[10px] md:text-xs">
+                    <span className="opacity-60 font-bold">INICIO:</span>
                     <strong className="font-bold">{formatHeaderDate(cursoActivo.fInicio)}</strong>
                 </div>
-                <div className="flex items-center gap-2 text-sm">
-                    <span className="opacity-70">Fin:</span>
+                <div className="flex items-center gap-2 text-[10px] md:text-xs">
+                    <span className="opacity-60 font-bold">FIN:</span>
                     <strong className="font-bold">{formatHeaderDate(cursoActivo.fFin)}</strong>
                 </div>
             </div>

@@ -270,8 +270,18 @@ const App = () => {
     handleReset();
   };
 
-  // Filtrar los cursos basados en el programa seleccionado (si existe)
-  const cursosFiltrados = docente ? (selectedProgramaUI ? docente.cursos.filter(c => (c.programa || 'Sin Programa') === selectedProgramaUI) : docente.cursos) : [];
+  // Filtrar y ordenar los cursos basados en el programa seleccionado
+  const cursosFiltrados = docente 
+    ? (selectedProgramaUI ? docente.cursos.filter(c => (c.programa || 'Sin Programa') === selectedProgramaUI) : docente.cursos)
+      .sort((a, b) => {
+        const getBloqueNum = (bStr) => {
+          if (!bStr) return 99;
+          const m = bStr.match(/\d+/);
+          return m ? parseInt(m[0], 10) : 99;
+        };
+        return getBloqueNum(a.bloque) - getBloqueNum(b.bloque);
+      })
+    : [];
 
   // Utilizar los cursos filtrados para HeroCard y Timeline
   const cursoActivo = cursosFiltrados.length > 0 ? cursosFiltrados[selectedCursoIdx] : null;
@@ -371,8 +381,12 @@ const App = () => {
                 setSelectedCursoIdx={setSelectedCursoIdx}
               />
 
-              <section className="flex flex-col gap-8">
-                <HeroCard cursoActivo={cursoActivo} />
+              <section className="flex flex-col gap-8 relative">
+                <div className="sticky top-0 z-40 pt-6 pb-2 bg-[#F0F2F5] dark:bg-slate-900 transition-colors duration-300">
+                  <HeroCard cursoActivo={cursoActivo} />
+                  {/* Desvanecido inferior */}
+                  <div className="absolute -bottom-6 left-0 right-0 h-6 bg-gradient-to-b from-[#F0F2F5] dark:from-slate-900 to-transparent pointer-events-none" />
+                </div>
                 <Timeline cursoActivo={cursoActivo} docenteId={docente.idReal} />
               </section>
             </motion.div>

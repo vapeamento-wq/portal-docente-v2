@@ -12,8 +12,18 @@ const Timeline = ({ cursoActivo, docenteId }) => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="p-10 bg-white dark:bg-slate-800 rounded-[30px] shadow-sm transition-colors duration-300"
+            className="p-6 md:p-8 bg-white dark:bg-slate-800 rounded-[30px] shadow-sm transition-colors duration-300"
         >
+            {cursoActivo.bloque?.includes('2') && (
+                <div className="mb-8 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-2xl flex items-center gap-4 text-amber-800 dark:text-amber-200 shadow-sm animate-pulse">
+                    <span className="text-2xl">⏰</span>
+                    <div>
+                        <div className="font-black text-sm uppercase tracking-wider">Aviso de Programación</div>
+                        <p className="m-0 text-sm font-medium opacity-90">Este curso está programado para iniciar en el <strong>Bloque 2</strong>. Consulta las fechas abajo.</p>
+                    </div>
+                </div>
+            )}
+
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4 sm:gap-0">
                 <h3 className="text-[#003366] dark:text-blue-400 m-0 text-xl font-bold transition-colors">Cronograma de Actividades</h3>
                 <div className="flex bg-gray-100 dark:bg-slate-700/50 p-1 rounded-lg">
@@ -91,6 +101,8 @@ const Timeline = ({ cursoActivo, docenteId }) => {
                                         <div className="inline-block bg-indigo-50 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-200 dark:border-indigo-800/50 px-4 py-2 rounded-full text-sm font-bold mt-2 border border-indigo-100 transition-colors">⏳ {s.displayTexto}</div>
                                     ) : s.tipo === 'PRESENCIAL' ? (
                                         <div className="inline-block bg-blue-50 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200 dark:border-blue-800/50 px-4 py-2 rounded-full text-sm font-bold mt-2 border border-blue-100 transition-colors">🏫 {s.displayTexto} <br /> ⏰ {s.hora}</div>
+                                    ) : s.hora?.includes('Bloque 2') ? (
+                                        <div className="text-gray-400 italic text-sm mt-2">Detalles de programación próximamente...</div>
                                     ) : (
                                         <>
                                             <div className="text-gray-500 dark:text-gray-400 mt-1 transition-colors">⏰ {s.hora}</div>
