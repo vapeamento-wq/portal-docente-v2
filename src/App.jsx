@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import useSWR from 'swr';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
@@ -48,6 +48,7 @@ const App = () => {
 
   const [fechaActual, setFechaActual] = useState(new Date());
   const [toast, setToast] = useState({ show: false, msg: '' });
+  const detailSectionRef = useRef(null);
 
   // Auth Anónima silenciosa: al cargar la app, todos los usuarios obtienen un token
   // invisible para poder escribir logs y analytics en Firebase.
@@ -132,9 +133,11 @@ const App = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Reset scroll to top when course changes
+  // Reset scroll to course section when course changes
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (detailSectionRef.current) {
+        detailSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   }, [selectedCursoIdx]);
 
   const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
@@ -386,7 +389,7 @@ const App = () => {
                 setSelectedCursoIdx={setSelectedCursoIdx}
               />
 
-              <section className="flex flex-col gap-8 relative">
+              <section ref={detailSectionRef} className="flex flex-col gap-8 relative">
                 <div className="sticky top-0 z-40 pt-6 pb-2 bg-[#F0F2F5] dark:bg-slate-900 transition-colors duration-300">
                   <HeroCard cursoActivo={cursoActivo} />
                   {/* Desvanecido inferior */}

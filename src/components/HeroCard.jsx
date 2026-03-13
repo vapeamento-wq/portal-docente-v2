@@ -81,8 +81,11 @@ const HeroCard = ({ cursoActivo }) => {
                     <div className="text-xs md:text-sm opacity-80 font-bold uppercase tracking-wider mt-1">{cursoActivo.grupo}</div>
                 </div>
                 {progress >= 0 && (
-                    <div className="flex items-center gap-3 bg-white/10 px-3 py-1.5 rounded-full border border-white/10 backdrop-blur-sm">
-                        <div className="text-sm font-black">{progress}%</div>
+                    <div className="flex items-center gap-3 bg-white/10 px-4 py-2 rounded-full border border-white/10 backdrop-blur-sm">
+                        <div className="flex flex-col items-end leading-none">
+                            <span className="text-[10px] uppercase font-bold tracking-widest opacity-60 mb-1">Avance del curso</span>
+                            <div className="text-sm font-black">{progress}%</div>
+                        </div>
                         <div className="w-16 h-1.5 bg-black/30 rounded-full overflow-hidden">
                             <motion.div
                                 initial={{ width: 0 }}
