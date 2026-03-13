@@ -8,7 +8,7 @@ const Sidebar = ({ docente, selectedCursoIdx, setSelectedCursoIdx }) => {
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
-            className="p-8 h-fit w-full md:w-auto flex md:block overflow-x-auto gap-4 md:gap-0 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border border-white/20 dark:border-white/5 shadow-lg rounded-[20px] transition-colors duration-300"
+            className="sticky top-6 z-20 p-8 h-fit w-full md:w-auto flex md:block overflow-x-auto gap-4 md:gap-0 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border border-white/20 dark:border-white/5 shadow-lg rounded-[20px] transition-colors duration-300"
         >
             <div className="hidden md:block text-center mb-8">
                 <div className="w-24 h-24 bg-[#db9b32] rounded-full flex items-center justify-center text-4xl text-[#003366] font-bold mx-auto mb-4 shadow-xl border-4 border-white dark:border-slate-700 transition-colors">
