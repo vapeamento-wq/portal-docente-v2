@@ -11,8 +11,8 @@ export default defineConfig({
       injectRegister: 'auto',
       includeAssets: ['apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png', 'vite.svg'],
       manifest: {
-        name: 'portal DOcente',
-        short_name: 'portal DOcente',
+        name: 'Portal Docente',
+        short_name: 'Portal Docente',
         description: 'Portal de gestión académica para docentes',
         theme_color: '#005596',
         background_color: '#ffffff',
