@@ -6,6 +6,15 @@ const HeroCard = ({ cursoActivo }) => {
 
     const formatHeaderDate = (dateStr) => {
         if (!dateStr) return '';
+        
+        // Attempt to parse standard date strings (like "Saturday, February 28, 2026")
+        const parsedDate = new Date(dateStr);
+        if (!isNaN(parsedDate.getTime()) && isNaN(dateStr) && dateStr.toString().includes(' ')) {
+            const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+            const formatted = parsedDate.toLocaleDateString('es-CO', options);
+            return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+        }
+
         const parts = dateStr.toString().trim().split('/');
         if (parts.length === 3) {
             let p0 = parseInt(parts[0], 10);
