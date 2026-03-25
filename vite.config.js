@@ -9,7 +9,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
-      includeAssets: ['apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png'],
+      includeAssets: ['apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png', 'logo-docente.png'],
       manifest: {
         name: 'Portal Docente',
         short_name: 'Portal Docente',
@@ -20,7 +20,7 @@ export default defineConfig({
         orientation: 'portrait',
         icons: [
           {
-            src: 'pwa-192x192.png',
+            src: 'logo-docente.png',
             sizes: '192x192',
             type: 'image/png',
             purpose: 'any'
