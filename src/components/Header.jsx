@@ -52,11 +52,11 @@ const Header = ({ onReset, docente, searchTerm, setSearchTerm, onSearch, loading
           {!docente && (
             <form onSubmit={onSearch} className="bg-white dark:bg-slate-800 p-1 rounded-full flex shadow-lg transition-transform w-full md:w-auto">
               <input
-                placeholder="Ingresa tu número de documento"
+                placeholder="Ingresa tu documento"
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
                 maxLength={15}
-                className="p-3 px-5 rounded-full border-none outline-none text-base w-full md:w-[200px] bg-transparent text-[#003366] dark:text-white placeholder:text-gray-400"
+                className="p-3 px-5 rounded-full border-none outline-none text-base w-full md:w-[280px] bg-transparent text-[#003366] dark:text-white placeholder:text-gray-400"
               />
               <button
                 type="submit"
