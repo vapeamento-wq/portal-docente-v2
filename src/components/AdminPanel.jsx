@@ -692,6 +692,7 @@ const AdminPanel = ({ onBack, onSelectDocente, userRole = 'monitor' }) => {
                                     <option value="SST">Seguridad y Salud en el Trabajo (SST)</option>
                                     <option value="Administración Pública">Administración Pública</option>
                                     <option value="SN">Semestre de Nivelación (SN)</option>
+                                    <option value="Programa 500*500">Programa 500*500</option>
                                 </select>
                             </div>
 
@@ -755,7 +756,7 @@ const AdminPanel = ({ onBack, onSelectDocente, userRole = 'monitor' }) => {
                                 Bases de Datos Cargadas
                             </h4>
                             <div className="space-y-3">
-                                {['SST', 'Administración Pública', 'SN'].map(prog => {
+                                {['SST', 'Administración Pública', 'SN', 'Programa 500*500'].map(prog => {
                                     const stats = programStats[prog] || { docentesIDs: new Set(), cursos: 0 };
                                     let progLabel = prog;
                                     let colorClasses = 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800/50';
@@ -766,6 +767,9 @@ const AdminPanel = ({ onBack, onSelectDocente, userRole = 'monitor' }) => {
                                     } else if (prog === 'SN') {
                                         progLabel = 'Semestre de Nivelación';
                                         colorClasses = 'bg-purple-50 border-purple-200 dark:bg-purple-900/20 dark:border-purple-800/50';
+                                    } else if (prog === 'Programa 500*500') {
+                                        progLabel = 'Programa 500*500';
+                                        colorClasses = 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800/50';
                                     }
 
                                     return (
