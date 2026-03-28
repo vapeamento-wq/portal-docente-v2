@@ -29,6 +29,11 @@ const AdminPanel = ({ onBack, onSelectDocente, userRole = 'monitor' }) => {
     const [logDays, setLogDays] = useState(7); // Filtro período de logs
     const [filtroRadarPrograma, setFiltroRadarPrograma] = useState('TODOS'); // Filtro para el radar
 
+    // --- NUEVOS ESTADOS PARA EDICIÓN DIRECTA ---
+    const [editingDocente, setEditingDocente] = useState(null);
+    const [editFormData, setEditFormData] = useState({ id: '', nombre: '' });
+    const [savingEdit, setSavingEdit] = useState(false);
+
     // --- ESTADOS PARA ESTADÍSTICAS ---
     const [dateRangeFilter, setDateRangeFilter] = useState('30'); // '7', '30', 'all', 'custom'
     const [fullAnalyticsRaw, setFullAnalyticsRaw] = useState({});
@@ -98,6 +103,137 @@ const AdminPanel = ({ onBack, onSelectDocente, userRole = 'monitor' }) => {
         };
         fetchData();
     }, []);
+
+    // --- NUEVAS FUNCIONES PARA EDICIÓN DE DOCENTES ---
+    const openEditModal = (docente) => {
+        setEditingDocente(docente);
+        setEditFormData({ id: docente.id, nombre: docente.nombre });
+    };
+
+    const handleEditFormSubmit = async (e) => {
+        e.preventDefault();
+        setSavingEdit(true);
+
+        try {
+            const secretAuth = await getAuthToken();
+            const { id: oldId } = editingDocente;
+            const { id: newId, nombre: newNombre } = editFormData;
+
+            if (!newId || !newNombre) {
+                alert("La cédula y el nombre son obligatorios.");
+                setSavingEdit(false);
+                return;
+            }
+
+            // Conseguir los datos completos actuales del docente a buscar
+            const resCurrent = await fetch(`${import.meta.env.VITE_FIREBASE_DB_BASE_URL}/docentes/${oldId}.json?auth=${secretAuth}`, { cache: 'no-store' });
+            const docData = await resCurrent.json();
+
+            if (!docData) {
+                alert("El docente no existe en la base de datos.");
+                setSavingEdit(false);
+                return;
+            }
+
+            // Cambió su nombre o su cédula
+            if (newId === oldId) {
+                // Solo cambiar nombre (PATCH)
+                await fetch(`${import.meta.env.VITE_FIREBASE_DB_BASE_URL}/docentes/${oldId}.json?auth=${secretAuth}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nombre: newNombre })
+                });
+            } else {
+                // Cambió código completo (PUT a nuevo key y DELETE del viejo)
+                
+                // 1. Verificar si el nuevo ID ya existe
+                const resCheck = await fetch(`${import.meta.env.VITE_FIREBASE_DB_BASE_URL}/docentes/${newId}.json?auth=${secretAuth}`);
+                const exists = await resCheck.json();
+                
+                if (exists) {
+                    const confirmar = window.confirm(`¡Atención! Ya existe un docente con la cédula ${newId}. ¿Deseas reemplazarlo con la información de ${newNombre}?`);
+                    if (!confirmar) {
+                        setSavingEdit(false);
+                        return;
+                    }
+                }
+
+                // 2. Insertarlo bajo el nuevo ID
+                docData.idReal = newId;
+                docData.nombre = newNombre;
+                await fetch(`${import.meta.env.VITE_FIREBASE_DB_BASE_URL}/docentes/${newId}.json?auth=${secretAuth}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(docData)
+                });
+
+                // 3. Borrar el ID viejo
+                await fetch(`${import.meta.env.VITE_FIREBASE_DB_BASE_URL}/docentes/${oldId}.json?auth=${secretAuth}`, {
+                    method: 'DELETE'
+                });
+            }
+
+            alert("✅ Docente actualizado exitosamente");
+            setEditingDocente(null);
+            
+            // Recargar datos manualmente para actualizar la lista de forma reactiva
+            const dbUrl = `${import.meta.env.VITE_FIREBASE_DB_BASE_URL}/docentes.json`;
+            const resReload = await fetch(dbUrl, { cache: 'no-store' });
+            const dataReload = await resReload.json();
+            if (dataReload) {
+                const list = Object.values(dataReload).map(d => ({
+                    id: d.idReal,
+                    nombre: d.nombre,
+                    cursosCount: d.cursos ? d.cursos.length : 0
+                }));
+                setDocentesList(list);
+                setDocentesListFull(Object.values(dataReload));
+            }
+        } catch (error) {
+            console.error(error);
+            alert("❌ Ocurrió un error guardando.");
+        } finally {
+            setSavingEdit(false);
+        }
+    };
+
+    const handleDeleteDocenteClick = async () => {
+        const confirmacion = window.confirm(`🛑 ¿Estás seguro de eliminar PERMANENTEMENTE a ${editingDocente.nombre}? Esto borrará todos sus cursos y su historial. Esta acción no se puede deshacer.`);
+        if (!confirmacion) return;
+
+        setSavingEdit(true);
+        try {
+            const secretAuth = await getAuthToken();
+            await fetch(`${import.meta.env.VITE_FIREBASE_DB_BASE_URL}/docentes/${editingDocente.id}.json?auth=${secretAuth}`, {
+                method: 'DELETE'
+            });
+
+            alert("🗑️ Docente eliminado exitosamente.");
+            setEditingDocente(null);
+            
+            // Recargar datos manualmente
+            const dbUrl = `${import.meta.env.VITE_FIREBASE_DB_BASE_URL}/docentes.json`;
+            const resReload = await fetch(dbUrl, { cache: 'no-store' });
+            const dataReload = await resReload.json();
+            if (dataReload) {
+                const list = Object.values(dataReload).map(d => ({
+                    id: d.idReal,
+                    nombre: d.nombre,
+                    cursosCount: d.cursos ? d.cursos.length : 0
+                }));
+                setDocentesList(list);
+                setDocentesListFull(Object.values(dataReload));
+            } else {
+                setDocentesList([]);
+                setDocentesListFull([]);
+            }
+        } catch (error) {
+            console.error(error);
+            alert("❌ Ocurrió un error al eliminar.");
+        } finally {
+            setSavingEdit(false);
+        }
+    };
 
     const handleFileUpload = (e) => {
         const file = e.target.files[0];
@@ -992,7 +1128,8 @@ const AdminPanel = ({ onBack, onSelectDocente, userRole = 'monitor' }) => {
                                         <tr className="border-b-2 border-gray-100 dark:border-slate-700">
                                             <th className="p-3 text-sm text-gray-500 dark:text-gray-400 uppercase font-bold">Nombre del Docente</th>
                                             <th className="p-3 text-sm text-gray-500 dark:text-gray-400 uppercase font-bold">Cédula</th>
-                                            <th className="p-3 text-sm text-gray-500 dark:text-gray-400 uppercase font-bold">Cursos Asignados</th>
+                                            <th className="p-3 text-sm text-gray-500 dark:text-gray-400 uppercase font-bold w-32">Cursos</th>
+                                            {isFullAdmin && <th className="p-3 text-sm text-gray-500 dark:text-gray-400 uppercase font-bold w-24 text-right">Acciones</th>}
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -1020,12 +1157,21 @@ const AdminPanel = ({ onBack, onSelectDocente, userRole = 'monitor' }) => {
                                                 .map(d => (
                                                     <tr
                                                         key={d.id}
-                                                        onClick={() => onSelectDocente(d.id)}
                                                         className="border-b border-gray-50 dark:border-slate-700/50 hover:bg-gray-100 dark:hover:bg-slate-700/60 transition-colors cursor-pointer group"
                                                     >
-                                                        <td className="p-3 font-semibold text-gray-800 dark:text-gray-200 group-hover:text-[#003366] dark:group-hover:text-blue-400 transition-colors">{d.nombre}</td>
-                                                        <td className="p-3 text-gray-600 dark:text-gray-400 font-mono text-sm">{d.id}</td>
-                                                        <td className="p-3 text-gray-600 dark:text-gray-400"><span className="bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300 font-bold px-2 py-1 rounded text-xs">{d.cursosCount}</span></td>
+                                                        <td className="p-3 font-semibold text-gray-800 dark:text-gray-200 group-hover:text-[#003366] dark:group-hover:text-blue-400 transition-colors" onClick={() => onSelectDocente(d.id)}>{d.nombre}</td>
+                                                        <td className="p-3 text-gray-600 dark:text-gray-400 font-mono text-sm" onClick={() => onSelectDocente(d.id)}>{d.id}</td>
+                                                        <td className="p-3 text-gray-600 dark:text-gray-400" onClick={() => onSelectDocente(d.id)}><span className="bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300 font-bold px-2 py-1 rounded text-xs">{d.cursosCount}</span></td>
+                                                        {isFullAdmin && (
+                                                            <td className="p-3 text-right">
+                                                                <button
+                                                                    onClick={(e) => { e.stopPropagation(); openEditModal(d); }}
+                                                                    className="px-3 py-1.5 bg-gray-100 hover:bg-blue-100 text-gray-700 hover:text-blue-700 dark:bg-slate-700 dark:hover:bg-blue-900/60 dark:text-gray-300 dark:hover:text-blue-400 text-xs font-bold rounded-lg transition-colors cursor-pointer"
+                                                                >
+                                                                    ✏️ Editar
+                                                                </button>
+                                                            </td>
+                                                        )}
                                                     </tr>
                                                 ))
                                         )}
@@ -1259,6 +1405,57 @@ const AdminPanel = ({ onBack, onSelectDocente, userRole = 'monitor' }) => {
 
 
             </div>
+
+            {/* MODAL DE EDICIÓN DE DOCENTE */}
+            {editingDocente && isFullAdmin && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 w-full max-w-lg shadow-[0_30px_60px_rgba(0,0,0,0.3)] fade-in-up border border-gray-100 dark:border-slate-700">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="m-0 text-2xl font-bold text-[#003366] dark:text-blue-400">✏️ Editar Usuario</h3>
+                            <button onClick={() => setEditingDocente(null)} disabled={savingEdit} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl font-bold p-2 bg-gray-50 dark:bg-slate-700 hover:bg-gray-100 dark:hover:bg-slate-600 rounded-full transition-colors cursor-pointer">
+                                ✕
+                            </button>
+                        </div>
+                        
+                        <div className="bg-blue-50 dark:bg-blue-900/40 p-4 rounded-xl border-l-4 border-blue-500 mb-6 text-sm text-blue-800 dark:text-blue-200">
+                            <strong>Nota:</strong> Al cambiar la cédula / documento, se preservan de forma inteligente todos los cursos programados y se agrupan en el nuevo ID.
+                        </div>
+
+                        <form onSubmit={handleEditFormSubmit} className="flex flex-col gap-5">
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide">Nombre Completo</label>
+                                <input 
+                                    type="text" 
+                                    value={editFormData.nombre}
+                                    onChange={e => setEditFormData({...editFormData, nombre: e.target.value})}
+                                    className="w-full p-4 rounded-xl border border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white font-semibold focus:ring-2 focus:ring-[#003366] dark:focus:ring-blue-500 outline-none transition-all shadow-inner"
+                                    required
+                                />
+                            </div>
+                            
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide">Documento / Cédula</label>
+                                <input 
+                                    type="text" 
+                                    value={editFormData.id}
+                                    onChange={e => setEditFormData({...editFormData, id: e.target.value.replace(/\D/g, '')})}
+                                    className="w-full p-4 rounded-xl border border-gray-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white font-mono font-medium focus:ring-2 focus:ring-[#003366] dark:focus:ring-blue-500 outline-none transition-all shadow-inner tracking-widest text-[#003366] dark:text-blue-400"
+                                    required
+                                />
+                            </div>
+
+                            <div className="mt-6 flex gap-3 flex-col sm:flex-row">
+                                <button type="submit" disabled={savingEdit} className="flex-1 py-3 px-4 bg-[#003366] hover:bg-blue-800 text-white font-bold rounded-xl transition-colors cursor-pointer disabled:opacity-50 shadow-md">
+                                    {savingEdit ? 'Procesando...' : '💾 Guardar Cambios'}
+                                </button>
+                                <button type="button" onClick={handleDeleteDocenteClick} disabled={savingEdit} className="py-3 px-5 sm:w-auto bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-900/40 dark:text-red-400 dark:hover:bg-red-800/60 font-bold rounded-xl transition-colors cursor-pointer disabled:opacity-50 border border-red-200 dark:border-red-800">
+                                    🗑️ Eliminar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
