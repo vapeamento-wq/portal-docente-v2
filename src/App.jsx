@@ -469,11 +469,7 @@ const App = () => {
         <div className="header-content">
           <div className="brand" onClick={handleReset} style={{cursor:'pointer'}}>
             <h1>PORTAL DOCENTES</h1>
-            <h2>
-              {programaSeleccionado && programaSeleccionado !== 'Programa Principal'
-                ? `${getProgramColor(programaSeleccionado).icon} ${programaSeleccionado.toUpperCase()}`
-                : 'CORPORACIÓN UNIVERSITARIA CREO'}
-            </h2>
+            <h2>PROGRAMA DE ADMINISTRACIÓN DE LA SEGURIDAD Y SALUD EN EL TRABAJO </h2>
           </div>
           <div className="actions">
             {!docente && (
@@ -500,9 +496,7 @@ const App = () => {
           <>
             <aside className="sidebar glass-panel">
               <div className="profile-header">
-                <div className="avatar" style={programaSeleccionado ? {background: getProgramColor(programaSeleccionado).light, color: getProgramColor(programaSeleccionado).text, boxShadow: `0 10px 20px ${getProgramColor(programaSeleccionado).accent}44`} : {}}>
-                  {programaSeleccionado ? getProgramColor(programaSeleccionado).icon : docente.nombre.charAt(0)}
-                </div>
+                <div className="avatar">{docente.nombre.charAt(0)}</div>
                 <h3 style={{margin:0, color:'var(--primary)'}}>{getSaludo()},<br/>{docente.nombre.split(' ')[0]}</h3>
                 <div style={{fontSize:'0.85rem', color:'#888', marginTop:'5px', background:'#f5f5f5', padding:'3px 10px', borderRadius:'10px'}}>ID: {docente.idReal}</div>
                 {programaSeleccionado && (
