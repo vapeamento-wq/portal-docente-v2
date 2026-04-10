@@ -41,6 +41,17 @@ const DatabaseStatusCard = ({ stats }) => {
                         <span className="flex items-center gap-1">📅 {stats?.P500?.cursos || 0} Horarios</span>
                     </div>
                 </div>
+
+                {/* Vocacional */}
+                <div className="bg-teal-50/50 dark:bg-teal-900/10 border border-teal-100 dark:border-teal-900/30 p-4 rounded-xl">
+                    <h4 className="m-0 mb-2 text-teal-800 dark:text-teal-400 font-bold flex items-center gap-2">
+                        <span>🎓</span> Vocacional
+                    </h4>
+                    <div className="flex gap-4 text-sm text-teal-700 dark:text-teal-300">
+                        <span className="flex items-center gap-1">👤 {stats?.VOC?.docentes || 0} Profes</span>
+                        <span className="flex items-center gap-1">📚 {stats?.VOC?.cursos || 0} Cursos</span>
+                    </div>
+                </div>
             </div>
         </div>
     );

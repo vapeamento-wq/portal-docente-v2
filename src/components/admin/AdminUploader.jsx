@@ -8,7 +8,7 @@ const AdminUploader = ({ onFileUpload, uploading, uploadResult, onDelete }) => {
         <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm text-center relative overflow-hidden">
             <h3 className="m-0 mb-6 text-slate-800 dark:text-blue-400 font-bold flex items-center justify-center gap-2">
                 <span className="text-2xl">{uploadMode === 'students' ? '📥' : '📅'}</span> 
-                {uploadMode === 'students' ? 'Actualizar Estudiantes' : 'Actualizar Horarios'}
+                {uploadMode === 'students' ? 'Actualizar Docentes' : 'Actualizar Horarios'}
             </h3>
 
             {/* Selector de Modo */}
@@ -16,7 +16,7 @@ const AdminUploader = ({ onFileUpload, uploading, uploadResult, onDelete }) => {
                 <button
                     onClick={() => setUploadMode('students')}
                     className={`flex-1 py-2 text-[10px] font-black rounded-lg transition-all uppercase tracking-widest ${uploadMode === 'students' ? 'bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-200 shadow-sm' : 'text-slate-500'}`}
-                >Estudiantes</button>
+                >Docentes</button>
                 <button
                     onClick={() => setUploadMode('schedules')}
                     className={`flex-1 py-2 text-[10px] font-black rounded-lg transition-all uppercase tracking-widest ${uploadMode === 'schedules' ? 'bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-200 shadow-sm' : 'text-slate-500'}`}
@@ -25,7 +25,7 @@ const AdminUploader = ({ onFileUpload, uploading, uploadResult, onDelete }) => {
 
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-5 leading-tight">
                 {uploadMode === 'students' 
-                    ? 'Sincroniza la base de datos de alumnos desde Excel.' 
+                    ? 'Sube el Excel de un programa. El sistema lo analizará y lo fusionará sin borrar los demás programas.' 
                     : 'Sincroniza el cronograma de 16 semanas desde el Excel de horarios.'}
             </p>
 
@@ -43,6 +43,7 @@ const AdminUploader = ({ onFileUpload, uploading, uploadResult, onDelete }) => {
                     <option value="AP">Administración Pública</option>
                     <option value="SN">Semestre de Nivelación</option>
                     <option value="P500">500 X 500</option>
+                    <option value="VOC">Vocacional</option>
                 </select>
                 <p className="mt-2 text-[10px] text-slate-400 dark:text-slate-500 leading-tight">
                     Elige a qué categoría pertenecen los estudiantes de este archivo.

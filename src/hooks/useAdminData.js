@@ -23,7 +23,11 @@ export const useAdminData = () => {
     const [fullAnalytics, setFullAnalytics] = useState({});
     const [eventsData, setEventsData] = useState({});
     const [programStats, setProgramStats] = useState({
-        SST: { docentes: 0, cursos: 0 },
+        SST:  { docentes: 0, cursos: 0 },
+        AP:   { docentes: 0, cursos: 0 },
+        SN:   { docentes: 0, cursos: 0 },
+        P500: { docentes: 0, cursos: 0 },
+        VOC:  { docentes: 0, cursos: 0 },
     });
 
     const [refreshCount, setRefreshCount] = useState(0);
@@ -60,8 +64,15 @@ export const useAdminData = () => {
                     }));
                     setDocentesListFull(fullList);
 
-                    // Estadísticas simples
-                    setProgramStats({ SST: { docentes: fullList.length, cursos: list.reduce((a, d) => a + d.cursosCount, 0) } });
+                    // Estadísticas por programa (dinámico)
+                    const statsMap = { SST: { docentes: 0, cursos: 0 }, AP: { docentes: 0, cursos: 0 }, SN: { docentes: 0, cursos: 0 }, P500: { docentes: 0, cursos: 0 }, VOC: { docentes: 0, cursos: 0 } };
+                    fullList.forEach(d => {
+                        const prog = d.targetProgram || 'SST';
+                        if (!statsMap[prog]) statsMap[prog] = { docentes: 0, cursos: 0 };
+                        statsMap[prog].docentes++;
+                        statsMap[prog].cursos += (d.cursos ? d.cursos.length : 0);
+                    });
+                    setProgramStats(statsMap);
                 } else if (isMounted) {
                     setDocentesList([]);
                     setDocentesListFull([]);
