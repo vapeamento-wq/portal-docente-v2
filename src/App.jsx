@@ -1,576 +1,422 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import useSWR from 'swr';
+import Header from './components/Header';
+import Sidebar from './components/Sidebar';
+import HeroCard from './components/HeroCard';
+import Timeline from './components/Timeline';
+import Toast from './components/Toast';
+import LoginModal from './components/LoginModal';
+import ProgramSelectionModal from './components/ProgramSelectionModal';
+import AdminPanel from './components/AdminPanel';
+import MaintenanceScreen from './components/MaintenanceScreen';
+import NotFoundScreen from './components/NotFoundScreen';
+import WelcomeScreen from './components/WelcomeScreen';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
+import { registrarLog, procesarCursos, formatoFechaHora } from './utils/helpers';
+import { ensureAuth, loginAdmin, logoutAdmin, onAuthChange, isAdmin, getUserRole } from './utils/firebaseAuth';
+import { trackAppEvent } from './utils/analytics';
 
-// --- ⚡ CONFIGURACIÓN MAESTRA (V21.0 - CON LOGS DE ERROR) ---
+const FIREBASE_DB_URL = `${import.meta.env.VITE_FIREBASE_DB_BASE_URL}/docentes/`;
+const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER;
 
-// 1. LECTURA (Firebase)
-const FIREBASE_DB_URL = "https://portal-creo-db-default-rtdb.firebaseio.com/docentes/"; 
-
-// 2. ESCRITURA DE LOGS (Tu Script de Google)
-const URL_SCRIPT_LOGS = "https://script.google.com/macros/s/AKfycbzME0D_wVP6l4AxLsZMFT4gIDJoD5LAlUhrQ1OL3Al1tAUZZvmiiF1VOlYmiUqY_DeL/exec";
-
-// 3. ACCESO AL EXCEL MAESTRO
-const URL_TU_EXCEL_MAESTRO = "https://docs.google.com/spreadsheets/d/1fHgj_yep0s7955EeaRpFiJeBLJX_-PLtjOFxWepoprQ/edit";
-
-const URL_FIREBASE_CONSOLE = "https://console.firebase.google.com/";
-const WHATSAPP_NUMBER = "573106964025";
-const ADMIN_PASS = "admincreo"; 
-
-// --- 🎨 MAPA DE COLORES POR PROGRAMA ---
-const PROGRAM_COLORS = {
-  'SST':                       { bg: 'linear-gradient(135deg, #7c2d12 0%, #ea580c 100%)', accent: '#f97316', light: '#fff7ed', text: '#9a3412', icon: '🛡️' },
-  'SST (Seguridad y Salud)':   { bg: 'linear-gradient(135deg, #7c2d12 0%, #ea580c 100%)', accent: '#f97316', light: '#fff7ed', text: '#9a3412', icon: '🛡️' },
-  'Administración Pública':    { bg: 'linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 100%)', accent: '#3b82f6', light: '#dbeafe', text: '#1e40af', icon: '🏛️' },
-  'Semestre de Nivelación':    { bg: 'linear-gradient(135deg, #4a1d96 0%, #7c3aed 100%)', accent: '#8b5cf6', light: '#ede9fe', text: '#5b21b6', icon: '📚' },
-  '500 X 500':                 { bg: 'linear-gradient(135deg, #78350f 0%, #d97706 100%)', accent: '#f59e0b', light: '#fef3c7', text: '#92400e', icon: '🌟' },
-  'Vocacional':                { bg: 'linear-gradient(135deg, #064e3b 0%, #059669 100%)', accent: '#10b981', light: '#d1fae5', text: '#065f46', icon: '🎓' },
-  'Programa Principal':        { bg: 'linear-gradient(135deg, #003366 0%, #004080 100%)', accent: '#db9b32', light: '#fef9ec', text: '#003366', icon: '👨‍🏫' },
-};
-const getProgramColor = (prog) => {
-  if (!prog) return PROGRAM_COLORS['Programa Principal'];
-  if (PROGRAM_COLORS[prog]) return PROGRAM_COLORS[prog];
-  const p = prog.toUpperCase();
-  if (p.includes('SST') || p.includes('SEGURIDAD')) return PROGRAM_COLORS['SST'];
-  if (p.includes('ADMINISTR') || p.includes('PÚBLICA') || p.includes('PUBLICA')) return PROGRAM_COLORS['Administración Pública'];
-  if (p.includes('NIVELAC')) return PROGRAM_COLORS['Semestre de Nivelación'];
-  if (p.includes('500')) return PROGRAM_COLORS['500 X 500'];
-  if (p.includes('VOCAC')) return PROGRAM_COLORS['Vocacional'];
-  return PROGRAM_COLORS['Programa Principal'];
-};
-
-// --- COMPONENTE TOAST ---
-const Toast = ({ msg, show }) => (
-  <div className={`toast-notification ${show ? 'show' : ''}`}>{msg}</div>
-);
+// Fetcher function for SWR
+const fetcher = (...args) => fetch(...args).then(res => res.json());
 
 const App = () => {
-  const [view, setView] = useState('user'); 
-  const [passInput, setPassInput] = useState('');
-  
+  const [view, setView] = useState('user');
+
+  // Estado de autenticación del administrador (manejado por Firebase Auth)
+  const [isAdminAuth, setIsAdminAuth] = useState(false);
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginError, setLoginError] = useState('');
+
   // Estados Usuario
-  const [loading, setLoading] = useState(false); 
   const [searchTerm, setSearchTerm] = useState('');
-  const [docente, setDocente] = useState(null); 
+  const [searchId, setSearchId] = useState(null); // ID real para SWR
+  const [docente, setDocente] = useState(null);
+
+  // Estados para Selección de Programa
+  const [programasDisponibles, setProgramasDisponibles] = useState([]);
+  const [selectedProgramaUI, setSelectedProgramaUI] = useState(null);
+  const [esperandoPrograma, setEsperandoPrograma] = useState(false);
+
   const [selectedCursoIdx, setSelectedCursoIdx] = useState(0);
-  
-  // Estados Admin (Diagnóstico)
-  const [adminSearch, setAdminSearch] = useState('');
-  const [adminResult, setAdminResult] = useState(null);
-  
+  const [anuncio, setAnuncio] = useState(null);
+  const [searchAttempted, setSearchAttempted] = useState(false);
+
   const [fechaActual, setFechaActual] = useState(new Date());
   const [toast, setToast] = useState({ show: false, msg: '' });
+  const detailSectionRef = useRef(null);
 
-  // Multi-programa
-  const [showProgramSelector, setShowProgramSelector] = useState(false);
-  const [programasDisponibles, setProgramasDisponibles] = useState([]);
-  const [programaSeleccionado, setProgramaSeleccionado] = useState(null);
-
+  // Auth Anónima silenciosa: al cargar la app, todos los usuarios obtienen un token
+  // invisible para poder escribir logs y analytics en Firebase.
   useEffect(() => {
-    const timer = setInterval(() => {
-        const now = new Date();
-        if(!isNaN(now.getTime())) setFechaActual(now);
-    }, 1000);
-    return () => clearInterval(timer);
+    ensureAuth().catch(err => console.warn('Anonymous auth failed:', err));
   }, []);
 
-  const formatoFechaHora = () => {
-    try {
-        if(isNaN(fechaActual.getTime())) return { fecha: "Fecha no disponible", hora: "--:--" };
-        const opcionesFecha = { weekday: 'long', day: 'numeric', month: 'long' };
-        const fecha = fechaActual.toLocaleDateString('es-CO', opcionesFecha);
-        const hora = fechaActual.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
-        return { fecha: fecha.charAt(0).toUpperCase() + fecha.slice(1), hora: hora };
-    } catch(e) {
-        return { fecha: "Fecha no disponible", hora: "--:--" };
-    }
-  };
+  // Observer de Firebase Auth — persiste la sesión entre recargas
+  useEffect(() => {
+    const unsubscribe = onAuthChange((user) => {
+      setIsAdminAuth(user ? isAdmin() : false);
+      // Si un admin inicia sesión y estaba en la pantalla de login, ir al panel
+      if (user && !user.isAnonymous && view === 'login') setView('admin');
+    });
+    return () => unsubscribe();
+  }, [view]);
 
+  // SWR Hook para data fetching
+  const { data: rawData, error, isLoading } = useSWR(
+    searchId ? `${FIREBASE_DB_URL}${searchId}.json` : null,
+    fetcher,
+    {
+      revalidateOnFocus: false, // No recargar al cambiar de tab
+      dedupingInterval: 60000, // Cache por 1 minuto
+      shouldRetryOnError: false
+    }
+  );
+
+  // ... (keeping useEffects and handlers intact below)
+  // Efecto para procesar datos cuando llegan de SWR
   const showToast = (mensaje) => {
     setToast({ show: true, msg: mensaje });
     setTimeout(() => setToast({ show: false, msg: '' }), 3000);
   };
 
-  // --- FUNCIÓN DE REGISTRO DE LOGS ---
-  const registrarLog = (documento, accion) => {
-    try {
-      const now = new Date();
-      const dateStr = isNaN(now.getTime()) ? "Fecha inválida" : now.toLocaleString('es-CO');
-      const datosLog = { 
-        fecha: dateStr, 
-        doc: documento, 
-        estado: `[APP] ${accion}` 
-      };
-      fetch(URL_SCRIPT_LOGS, { 
-        method: "POST", 
-        mode: "no-cors", 
-        headers: { "Content-Type": "application/json" }, 
-        body: JSON.stringify(datosLog) 
-      }).catch(err => console.log("Error enviando log:", err));
-    } catch (e) { console.error("Error en registrarLog:", e); }
-  };
+  useEffect(() => {
+    if (rawData) {
+      const cursosProcesados = procesarCursos(rawData.cursos);
 
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text);
-    showToast("📋 ¡ID copiado!");
-  };
+      // Lógica de Múltiples Programas
+      const programas = Array.from(new Set(cursosProcesados.map(c => c.programa || 'Sin Programa')));
 
-  const getSaludo = () => {
-    const hora = new Date().getHours();
-    if (hora < 12) return "Buenos días";
-    if (hora < 18) return "Buenas tardes";
-    return "Buenas noches";
-  };
+      if (programas.length > 1) {
+        // Hay varios programas, detener el flujo y preguntar
+        setProgramasDisponibles(programas);
+        setEsperandoPrograma(true);
+        // Guardamos todo el docente pero no seleccionamos programa todavía
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setDocente({ ...rawData, cursos: cursosProcesados });
+      } else {
+        // Solo 1 programa, avanza directo
+        const programaUnico = programas[0] || null;
+        setProgramasDisponibles(programas);
+        setSelectedProgramaUI(programaUnico);
+        setEsperandoPrograma(false);
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setDocente({ ...rawData, cursos: cursosProcesados });
+        setSelectedCursoIdx(0);
+      }
 
-  // --- BÚSQUEDA PRINCIPAL (CON REGISTRO DE ÉXITOS Y ERRORES) ---
+      setSearchAttempted(false); // Reset on success
+      registrarLog(searchId, '✅ Consulta Exitosa (Cache/Red)');
+      trackAppEvent("search_success");
+    } else if (error) {
+      showToast('⚠️ Error de Red');
+      setSearchAttempted(true); // Show error view
+      registrarLog(searchId, '⚠️ Error Crítico de Red');
+      trackAppEvent("search_error", { error_type: "network" });
+    } else if (rawData === null && searchId) {
+      // SWR devolvió null (no encontrado en Firebase devuelve null body?)
+      // Firebase RTDB devuelve null si clave no existe
+      setDocente(null);
+      setSearchAttempted(true); // Show not found view
+      showToast('❌ No encontrado');
+      registrarLog(searchId, '❌ ID No Encontrado');
+      trackAppEvent("search_error", { error_type: "not_found" });
+    }
+  }, [rawData, error, searchId]);
+
+  useEffect(() => {
+    const timer = setInterval(() => setFechaActual(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Reset scroll to course section when course changes
+  useEffect(() => {
+    if (detailSectionRef.current) {
+        detailSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [selectedCursoIdx]);
+
+  const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
+
+  // Fetch Global Announcement & Maintenance Mode periodically
+  useEffect(() => {
+    const fetchAnuncio = async () => {
+      try {
+        const dbBaseUrl = import.meta.env.VITE_FIREBASE_DB_BASE_URL;
+        const res = await fetch(`${dbBaseUrl}/config/anuncio.json`);
+        const data = await res.json();
+
+        // Extraer bandera de mantenimiento dinámico
+        if (data && typeof data.mantenimiento !== 'undefined') {
+          setIsMaintenanceMode(Boolean(data.mantenimiento));
+        }
+
+        if (data && data.texto && data.texto.trim() !== '') {
+          const now = new Date();
+          let esValido = true;
+
+          if (data.inicio) {
+            const fechaInicio = new Date(data.inicio);
+            if (now < fechaInicio) esValido = false;
+          }
+
+          if (data.fin) {
+            const fechaFin = new Date(data.fin);
+            if (now > fechaFin) esValido = false;
+          }
+
+          if (esValido) {
+            setAnuncio(data.texto);
+          } else {
+            setAnuncio(null);
+          }
+        } else {
+          setAnuncio(null);
+        }
+      } catch (err) {
+        console.error("Error fetching admin config:", err);
+      }
+    };
+
+    fetchAnuncio();
+
+    // Polling cada 30 segundos para detectar si se activó el mantenimiento
+    const pollTimer = setInterval(fetchAnuncio, 30000);
+    return () => clearInterval(pollTimer);
+
+  }, [view]); // Refetch when view changes
+
+  // --- 💾 PERSISTENCIA (RECORDARME) ---
+  useEffect(() => {
+    const storedId = localStorage.getItem('portal_docente_id');
+    if (storedId) {
+      setSearchTerm(storedId);
+      setSearchId(storedId);
+    }
+  }, []);
+
   const handleSearch = (e) => {
     e.preventDefault();
-    const idBusqueda = searchTerm.replace(/\D/g, '');
-    if (!idBusqueda) { showToast('❌ Documento inválido'); return; }
+    // Sanitización rigurosa: solo números y máximo 15 caracteres
+    const rawInput = String(searchTerm).trim();
+    const idBusqueda = rawInput.replace(/\D/g, '').substring(0, 15);
 
-    setLoading(true);
+    if (!idBusqueda) {
+      showToast('❌ Documento inválido');
+      return;
+    }
+
+    if (rawInput !== idBusqueda) {
+      setSearchTerm(idBusqueda); // Limpia visualmente el input de letras
+    }
+
+    localStorage.setItem('portal_docente_id', idBusqueda); // Guardar ID
     setDocente(null);
+    setSearchAttempted(false); // Reset while loading
+    setSearchId(idBusqueda); // Trigger SWR
+  };
 
-    fetch(`${FIREBASE_DB_URL}${idBusqueda}.json`)
-      .then(res => res.json())
-      .then(data => {
-        setLoading(false);
-        if (data) {
-          const cursosProcesados = procesarCursos(data.cursos);
-          const programas = [...new Set(cursosProcesados.map(c => c.programa || 'Programa Principal'))];
-          
-          if (programas.length > 1) {
-              setProgramasDisponibles(programas);
-              setDocente({ ...data, cursos: cursosProcesados });
-              setShowProgramSelector(true);
-          } else {
-              setProgramaSeleccionado(programas[0] || 'Programa Principal');
-              setDocente({ ...data, cursos: cursosProcesados });
-              setSelectedCursoIdx(0);
-          }
-          // LOG: ✅ ÉXITO
-          registrarLog(idBusqueda, '✅ Consulta Exitosa');
-        } else {
-          showToast('❌ No encontrado');
-          // LOG: ❌ ERROR (Cédula no existe en Firebase)
-          registrarLog(idBusqueda, '❌ ID No Encontrado');
-        }
+  const handleAdminSelectDocente = (idDocente) => {
+    localStorage.setItem('portal_docente_id', idDocente);
+    setSearchTerm(idDocente);
+    setDocente(null);
+    setSearchAttempted(false);
+    setSearchId(idDocente);
+    setView('user');
+  };
+
+  // --- AUTENTICACIÓN ADMINISTRADOR (Firebase Auth) ---
+  const handleLogin = async (email, password) => {
+    setLoginLoading(true);
+    setLoginError('');
+    try {
+      await loginAdmin(email, password);
+      setView('admin');
+    } catch (err) {
+      console.error('Login error:', err.code, err.message);
+      const msg = err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password'
+        ? 'Correo o contraseña incorrectos.'
+        : err.code === 'auth/too-many-requests'
+          ? 'Demasiados intentos. Intenta más tarde.'
+          : err.code === 'auth/unauthorized-domain'
+            ? 'Dominio no autorizado. Agrega este dominio en Firebase Console → Auth → Configuración → Dominios autorizados.'
+            : `Error: ${err.code || err.message}`;
+      setLoginError(msg);
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  const handleReset = () => {
+    localStorage.removeItem('portal_docente_id'); // Borrar ID
+    setDocente(null);
+    setSearchTerm('');
+    setSearchId(null);
+    setSelectedCursoIdx(0);
+    setSearchAttempted(false);
+    setSelectedProgramaUI(null);
+    setEsperandoPrograma(false);
+    setProgramasDisponibles([]);
+
+    // Si el usuario es un administrador autenticado, devolverlo a su panel
+    if (isAdminAuth) {
+      setView('admin');
+    }
+  };
+
+  const handleProgramSelect = (prog) => {
+    setSelectedProgramaUI(prog);
+    setEsperandoPrograma(false);
+    setSelectedCursoIdx(0);
+  };
+
+  const handleProgramCancel = () => {
+    handleReset();
+  };
+
+  // Filtrar y ordenar los cursos basados en el programa seleccionado
+  const cursosFiltrados = docente 
+    ? (selectedProgramaUI ? docente.cursos.filter(c => (c.programa || 'Sin Programa') === selectedProgramaUI) : docente.cursos)
+      .sort((a, b) => {
+        const getBloqueNum = (bStr) => {
+          if (!bStr) return 99;
+          const m = bStr.match(/\d+/);
+          return m ? parseInt(m[0], 10) : 99;
+        };
+        return getBloqueNum(a.bloque) - getBloqueNum(b.bloque);
       })
-      .catch(err => { 
-        setLoading(false); 
-        showToast('⚠️ Error de Red');
-        // LOG: ⚠️ FALLO TÉCNICO
-        registrarLog(idBusqueda, '⚠️ Error Crítico de Red');
-      });
-  };
+    : [];
 
-  // --- BÚSQUEDA DIAGNÓSTICO (Admin) ---
-  const handleAdminDiagnostico = (e) => {
-    e.preventDefault();
-    const idBusqueda = adminSearch.replace(/\D/g, '');
-    if (!idBusqueda) return;
-    
-    setAdminResult('Cargando...');
-    fetch(`${FIREBASE_DB_URL}${idBusqueda}.json`)
-      .then(res => res.json())
-      .then(data => {
-        if(data) setAdminResult(`✅ ENCONTRADO EN NUBE:\nNombre: ${data.nombre}\nCursos: ${data.cursos.length}`);
-        else setAdminResult(`❌ NO EXISTE EN FIREBASE.`);
-      })
-      .catch(() => setAdminResult('⚠️ Error de conexión'));
-  };
-
-  const procesarCursos = (cursos) => {
-    return cursos.map(curso => {
-      const semanasProcesadas = [];
-      const semanasRaw = curso.semanasRaw || [];
-      semanasRaw.forEach((texto, i) => {
-         if (i >= 16) return; 
-         if (!texto || texto.length < 5 || texto.startsWith("-") || texto.toLowerCase().includes("pendiente")) return;
-
-         let tipo = 'ZOOM';
-         let displayTexto = '';
-         let ubicacion = '';
-         let finalLink = null;
-         let zoomId = null;
-         let esTrabajoIndependiente = false;
-         const textoUpper = texto.toUpperCase();
-
-         if (textoUpper.includes("TRABAJO INDEPEN") || textoUpper.includes("TRABAJO AUTONOMO")) {
-             tipo = 'INDEPENDIENTE';
-             displayTexto = "Trabajo Independiente";
-             ubicacion = "Estudio Autónomo";
-             esTrabajoIndependiente = true;
-         } 
-         else if (textoUpper.includes("PRESENCIAL") || textoUpper.includes("CAMPUS")) {
-             tipo = 'PRESENCIAL';
-             displayTexto = "Campus Principal - Presencial";
-             ubicacion = "Sede Principal";
-             if (texto.includes("Salón") || texto.includes("Aula")) ubicacion = texto;
-         }
-         else {
-             const idMatch = texto.match(/ID\s*[-:.]?\s*(\d{9,11})/i);
-             zoomId = idMatch ? idMatch[1] : null;
-             if (zoomId) finalLink = `https://zoom.us/j/${zoomId}`;
-             else {
-               const linkMatch = texto.match(/https?:\/\/[^\s,]+/);
-               if (linkMatch && linkMatch[0]) {
-                  let cleanLink = linkMatch[0];
-                  if (cleanLink.includes("-USUARIO")) cleanLink = cleanLink.split("-USUARIO")[0];
-                  finalLink = cleanLink;
-               }
-             }
-         }
-         const horaMatch = texto.match(/(\d{1,2}\s*[aA]\s*\d{1,2})/i); 
-         let horaDisplay = horaMatch ? horaMatch[0] : "Programada";
-         if (esTrabajoIndependiente) horaDisplay = "Todo el día";
-
-         const partes = texto.split('-');
-         let fechaDisplay = partes[0] ? partes[0].trim() : `Semana ${i+1}`;
-         fechaDisplay = fechaDisplay.replace(/^202[0-9]\s*\/\s*/, '').replace(/\s*\/\s*/g, '/');
-
-         let parsedDate = null;
-         if (fechaDisplay.includes('/')) {
-             const fParts = fechaDisplay.split('/');
-             let d = parseInt(fParts[0], 10);
-             let m = parseInt(fParts[1], 10) - 1;
-             if (!isNaN(d) && !isNaN(m)) {
-                 let y = fParts.length > 2 ? parseInt(fParts[2], 10) : new Date().getFullYear();
-                 if (y < 100) y += 2000;
-                 parsedDate = new Date(y, m, d);
-             }
-         }
-
-         semanasProcesadas.push({
-           num: i + 1, fecha: fechaDisplay, hora: horaDisplay,
-           tipo: tipo, displayTexto: displayTexto, ubicacion: ubicacion,
-           zoomId: zoomId, zoomLink: finalLink, parsedDate: parsedDate
-         });
-      });
-      return { ...curso, semanas: semanasProcesadas };
-    });
-  };
-
-  const handleReset = () => { 
-    setDocente(null); 
-    setSearchTerm(''); 
-    setSelectedCursoIdx(0); 
-    setProgramaSeleccionado(null);
-    setShowProgramSelector(false);
-  };
-  
-  const handleLogin = (e) => {
-    e.preventDefault();
-    if (passInput === ADMIN_PASS) setView('admin');
-    else alert("Contraseña incorrecta");
-  };
-
-  const cursosFiltrados = docente ? docente.cursos.filter(c => (c.programa || 'Programa Principal') === programaSeleccionado) : [];
+  // Utilizar los cursos filtrados para HeroCard y Timeline
   const cursoActivo = cursosFiltrados.length > 0 ? cursosFiltrados[selectedCursoIdx] : null;
 
-  // Calculo de Progreso General del Curso
-  let progressPercent = 0;
-  if (cursoActivo && cursoActivo.semanas) {
-      let passedWeeks = 0;
-      cursoActivo.semanas.forEach(s => {
-          if (s.parsedDate && s.parsedDate.getTime() <= fechaActual.getTime()) {
-              passedWeeks++;
-          }
-      });
-      progressPercent = cursoActivo.semanas.length ? Math.round((passedWeeks / cursoActivo.semanas.length) * 100) : 0;
-  }
-
-  // --- VISTA ADMIN ---
+  // --- VISTA ADMIN (CON DASHBOARD) ---
   if (view === 'admin') {
     return (
-      <div style={{fontFamily:'Segoe UI', background:'#f4f6f8', minHeight:'100vh', padding:'20px', display:'flex', flexDirection:'column', alignItems:'center'}}>
-        <div className="fade-in-up" style={{maxWidth:'800px', width:'100%', background:'white', padding:'40px', borderRadius:'30px', boxShadow:'0 20px 50px rgba(0,0,0,0.1)'}}>
-          
-          <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'30px', borderBottom:'1px solid #eee', paddingBottom:'20px'}}>
-            <div>
-              <h2 style={{color:'#003366', margin:0}}>PANEL DE CONTROL</h2>
-              <p style={{color:'#666', margin:'5px 0 0'}}>Estado: 🟢 Operativo | Logs: 🟢 Activos</p>
-            </div>
-            <button onClick={()=>setView('user')} style={{cursor:'pointer', padding:'10px 25px', borderRadius:'30px', border:'none', background:'#f0f0f0', fontWeight:'bold', color:'#333'}}>⬅ Volver</button>
-          </div>
-
-          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'30px'}}>
-            <div style={{background:'#f5f9ff', padding:'25px', borderRadius:'20px', border:'1px solid #dbeafe'}}>
-              <h3 style={{marginTop:0, color:'#1e40af'}}>🕵️‍♂️ Diagnóstico Rápido</h3>
-              <p style={{fontSize:'0.85rem', color:'#555'}}>Verifica cédulas sin generar registros de asistencia.</p>
-              <form onSubmit={handleAdminDiagnostico} style={{marginTop:'15px'}}>
-                <input 
-                  placeholder="Cédula a probar..." 
-                  value={adminSearch}
-                  onChange={e=>setAdminSearch(e.target.value)}
-                  style={{width:'100%', padding:'10px', borderRadius:'10px', border:'1px solid #ccc', marginBottom:'10px', boxSizing:'border-box'}}
-                />
-                <button style={{width:'100%', padding:'10px', background:'#2563eb', color:'white', border:'none', borderRadius:'10px', fontWeight:'bold', cursor:'pointer'}}>Consultar Nube</button>
-              </form>
-              {adminResult && (
-                <pre style={{background:'white', padding:'10px', borderRadius:'10px', marginTop:'15px', fontSize:'0.85rem', border:'1px solid #ddd', whiteSpace:'pre-wrap', color:'#333'}}>
-                  {adminResult}
-                </pre>
-              )}
-            </div>
-
-            <div style={{display:'flex', flexDirection:'column', gap:'15px'}}>
-              <h3 style={{marginTop:0, color:'#333'}}>🚀 Accesos Directos</h3>
-              
-              <a href={URL_TU_EXCEL_MAESTRO} target="_blank" rel="noreferrer" 
-                 style={{display:'flex', alignItems:'center', gap:'15px', padding:'20px', background:'#27ae60', color:'white', textDecoration:'none', borderRadius:'15px', fontWeight:'bold', boxShadow:'0 5px 15px rgba(39, 174, 96, 0.3)'}}>
-                 <span style={{fontSize:'1.5rem'}}>📊</span> 
-                 <div>
-                   <div>Abrir Excel Maestro</div>
-                   <div style={{fontSize:'0.7rem', opacity:0.8}}>Gestión y Asistencia</div>
-                 </div>
-              </a>
-              
-              <a href={URL_FIREBASE_CONSOLE} target="_blank" rel="noreferrer" 
-                 style={{display:'flex', alignItems:'center', gap:'15px', padding:'20px', background:'#f39c12', color:'white', textDecoration:'none', borderRadius:'15px', fontWeight:'bold', boxShadow:'0 5px 15px rgba(243, 156, 18, 0.3)'}}>
-                 <span style={{fontSize:'1.5rem'}}>🔥</span>
-                 <div>
-                   <div>Consola Firebase</div>
-                   <div style={{fontSize:'0.7rem', opacity:0.8}}>Base de Datos en Vivo</div>
-                 </div>
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
+      <AdminPanel
+        onBack={async () => { await logoutAdmin(); setView('user'); }}
+        onSelectDocente={handleAdminSelectDocente}
+        userRole={getUserRole()}
+      />
     );
+  }
+
+  // --- MANTENIMIENTO DINÁMICO ---
+  const isMaintenance = isMaintenanceMode; // Lee el estado de Firebase
+
+  // Si está en mantenimiento, no es login, y no es un Admin autenticado, bloquea.
+  if (isMaintenance && view !== 'login' && !isAdminAuth) {
+    return <MaintenanceScreen onAdminAccess={() => setView('login')} />;
   }
 
   // --- VISTA USUARIO ---
   return (
-    <div className="portal-container">
+    <div className="min-h-screen bg-[#F0F2F5] dark:bg-slate-900 text-[#1A1A1A] dark:text-gray-100 font-sans selection:bg-[#003366] dark:selection:bg-blue-500 selection:text-white pb-10 transition-colors duration-300">
       <Toast msg={toast.msg} show={toast.show} />
-      <style>{`
-        :root { --primary: #003366; --secondary: #db9b32; --bg: #F0F2F5; --text: #1A1A1A; }
-        body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
-        
-        .fade-in-up { animation: fadeInUp 0.6s ease-out forwards; }
-        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        
-        .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 10px 30px rgba(0,0,0,0.08); border-radius: 20px; }
-        
-        .header { background: var(--primary); padding: 25px 0; position: relative; overflow: hidden; }
-        .header-content { max-width: 1200px; margin: 0 auto; padding: 0 20px; display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 10; }
-        .brand h1 { margin: 0; color: var(--secondary); font-size: 1.8rem; font-weight: 800; letter-spacing: -0.5px; } 
-        .brand h2 { margin: 5px 0 0; font-size: 0.8rem; color: rgba(255,255,255,0.8); font-weight: 500; letter-spacing: 2px; text-transform: uppercase; }
-
-        .search-container { background: white; padding: 5px; border-radius: 50px; display: flex; box-shadow: 0 5px 20px rgba(0,0,0,0.2); transition: transform 0.2s; }
-        .search-form input { padding: 12px 20px; border-radius: 50px; border: none; outline: none; font-size: 1rem; width: 200px; }
-        .btn-search { background: var(--secondary); color: var(--primary); border: none; padding: 10px 30px; font-weight: 800; border-radius: 50px; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; }
-
-        .main-content { max-width: 1200px; margin: 40px auto; padding: 0 20px; display: grid; grid-template-columns: 320px 1fr; gap: 40px; }
-        .sidebar { padding: 30px; height: fit-content; animation: fadeInUp 0.5s ease-out; }
-        .profile-header { text-align: center; margin-bottom: 30px; }
-        .avatar { width: 90px; height: 90px; background: var(--secondary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; color: var(--primary); font-weight: bold; margin: 0 auto 15px; box-shadow: 0 10px 20px rgba(212, 175, 55, 0.3); border: 4px solid white; }
-        
-        .course-btn { width: 100%; padding: 15px 20px; margin-bottom: 12px; border: none; background: transparent; text-align: left; border-radius: 15px; position: relative; transition: all 0.2s; color: #666; cursor:pointer; border: 1px solid transparent; }
-        .course-btn.active { background: white; border-color: var(--secondary); box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
-        .course-btn.active .bloque-badge { background: var(--primary); color: white; }
-        .bloque-badge { display: inline-block; font-size: 0.7rem; background: #eee; padding: 2px 8px; border-radius: 10px; margin-top: 5px; font-weight: bold; color: #555; }
-
-        .hero-card { background: linear-gradient(135deg, #003366 0%, #004080 100%); color: white; padding: 40px; border-radius: 30px; position: relative; overflow: hidden; margin-bottom: 40px; box-shadow: 0 20px 40px rgba(0, 51, 102, 0.3); }
-        .hero-info-grid { display: flex; gap: 20px; margin-top: 25px; flex-wrap: wrap; background: rgba(0,0,0,0.25); padding: 15px 20px; border-radius: 15px; backdrop-filter: blur(5px); }
-        .hero-info-item { display: flex; align-items: center; gap: 8px; font-weight: 500; font-size: 0.95rem; }
-        
-        .timeline-container { padding: 40px; background: white; border-radius: 30px; }
-        .timeline-item { display: flex; gap: 25px; margin-bottom: 30px; position: relative; }
-        .timeline-line { position: absolute; left: 24px; top: 50px; bottom: -30px; width: 3px; background: #f0f0f0; }
-        .date-circle { width: 50px; height: 50px; background: #fff; border: 3px solid #eee; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: bold; font-size: 0.8rem; color: #aaa; z-index: 1; }
-        
-        .timeline-content { flex: 1; background: #fcfcfc; padding: 25px; border-radius: 20px; border: 1px solid #f0f0f0; transition: all 0.3s; }
-        .timeline-content:hover { background: white; border-color: var(--secondary); box-shadow: 0 15px 30px rgba(0,0,0,0.06); }
-        
-        .zoom-mini-btn { display: inline-flex; align-items: center; gap: 8px; background: #2D8CFF; color: white; padding: 10px 20px; border-radius: 50px; text-decoration: none; font-size: 0.9rem; font-weight: bold; margin-top: 15px; }
-        .copy-icon { cursor: pointer; opacity: 0.6; font-size: 1.1rem; }
-
-        .offline-badge { display: inline-block; background: #e3f2fd; color: #1565c0; padding: 8px 15px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; margin-top: 10px; border: 1px solid rgba(21, 101, 192, 0.1); }
-        .whatsapp-btn { position: fixed; bottom: 30px; right: 30px; background: #25D366; color: white; padding: 15px 25px; border-radius: 50px; text-decoration: none; font-weight: bold; box-shadow: 0 10px 30px rgba(37, 211, 102, 0.4); z-index: 100; }
-
-        .toast-notification { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px); background: rgba(0,0,0,0.85); color: white; padding: 12px 24px; border-radius: 50px; font-weight: bold; opacity: 0; transition: all 0.3s; }
-        .toast-notification.show { transform: translateX(-50%) translateY(0); opacity: 1; }
-
-        /* Multi Program & Badges */
-        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 3000; display: flex; align-items: center; justify-content: center; }
-        .modal-content { background: white; padding: 40px; border-radius: 20px; text-align: center; max-width: 400px; width: 90%; }
-        .program-btn { display: block; width: 100%; padding: 15px; margin-bottom: 10px; background: #f0f2f5; border: 2px solid transparent; border-radius: 10px; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 1rem; color: var(--primary); }
-        .program-btn:hover { background: #e0e4e8; border-color: var(--secondary); }
-
-        .badge-faltan { font-size: 0.75rem; padding: 4px 10px; border-radius: 12px; font-weight: bold; }
-        .badge-faltan.future { background: #e3f2fd; color: #1565c0; }
-        .badge-faltan.today { background: #e8f5e9; color: #2e7d32; }
-        .badge-faltan.past { background: #ffebee; color: #c62828; }
-
-        .progress-container { width: 100%; background: rgba(255,255,255,0.2); height: 8px; border-radius: 10px; margin-top: 20px; overflow: hidden; }
-        .progress-bar { height: 100%; background: #4caf50; transition: width 0.5s ease; }
-
-        @media (max-width: 900px) { 
-          .main-content { display: flex; flex-direction: column; } 
-          .sidebar { order: -1; display: flex; overflow-x: auto; padding: 15px; gap: 15px; }
-          .course-btn { min-width: 240px; margin-bottom: 0; }
-        }
-      `}</style>
-      
-      {/* VISTA SELECCIÓN PROGRAMA MULTIPLE */}
-      {showProgramSelector && (
-          <div className="modal-overlay">
-              <div className="modal-content fade-in-up">
-                  <h2 style={{color: 'var(--primary)', marginBottom: '10px'}}>Selecciona tu Programa</h2>
-                  <p style={{color: '#666', marginBottom: '25px'}}>Hemos detectado que dictas clases en múltiples programas. ¿Cuál deseas visualizar?</p>
-                  {programasDisponibles.map((prog, i) => (
-                      <button key={i} className="program-btn" onClick={() => {
-                          setProgramaSeleccionado(prog);
-                          setShowProgramSelector(false);
-                          setSelectedCursoIdx(0);
-                      }}>
-                          {prog}
-                      </button>
-                  ))}
-                  <button onClick={handleReset} style={{marginTop: '15px', color:'red', background:'transparent', border:'none', cursor:'pointer', fontWeight:'bold'}}>
-                      Cancelar
-                  </button>
-              </div>
-          </div>
-      )}
 
       {/* LOGIN ADMIN */}
       {view === 'login' && (
-        <div style={{position:'fixed', top:0, left:0, width:'100%', height:'100%', background:'rgba(0,0,0,0.6)', backdropFilter:'blur(5px)', zIndex:2000, display:'flex', alignItems:'center', justifyContent:'center'}}>
-          <form onSubmit={handleLogin} className="glass-panel fade-in-up" style={{padding:'40px', width:'320px', textAlign:'center', background:'white'}}>
-            <h3 style={{color:'var(--primary)', marginTop:0, fontSize:'1.5rem'}}>Acceso Admin</h3>
-            <input type="password" placeholder="Contraseña" value={passInput} onChange={(e)=>setPassInput(e.target.value)} style={{width:'100%', padding:'15px', marginBottom:'20px', border:'1px solid #ddd', borderRadius:'12px', outline:'none', background:'#f9f9f9'}} autoFocus />
-            <div style={{display:'flex', gap:'10px'}}>
-              <button type="button" onClick={()=>setView('user')} className="rounded-btn" style={{flex:1, padding:'12px', background:'#f0f0f0', border:'none', color:'#666', fontWeight:'bold'}}>Cancelar</button>
-              <button type="submit" className="rounded-btn" style={{flex:1, background:'var(--primary)', color:'white', border:'none', fontWeight:'bold'}}>Entrar</button>
-            </div>
-          </form>
-        </div>
+        <LoginModal
+          onSubmit={handleLogin}
+          onCancel={() => setView('user')}
+          loading={loginLoading}
+          error={loginError}
+        />
       )}
 
-      <header className="header">
-        <div className="header-content">
-          <div className="brand" onClick={handleReset} style={{cursor:'pointer'}}>
-            <h1>PORTAL DOCENTES</h1>
-            <h2>PROGRAMA DE ADMINISTRACIÓN DE LA SEGURIDAD Y SALUD EN EL TRABAJO </h2>
-          </div>
-          <div className="actions">
-            {!docente && (
-              <form onSubmit={handleSearch} className="search-container">
-                <input placeholder="Cédula del Docente" value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} className="search-input" />
-                <button className="btn-search rounded-btn">{loading ? '...' : 'CONSULTAR'}</button>
-              </form>
-            )}
-            {docente && <button onClick={handleReset} className="btn-search rounded-btn" style={{fontSize:'0.75rem', padding:'10px 20px'}}>↺ Salir</button>}
-          </div>
-        </div>
-      </header>
+      <Header
+        onReset={handleReset}
+        docente={docente}
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        onSearch={handleSearch}
+        loading={isLoading}
+      />
 
-      <main className="main-content">
-        {!docente ? (
-          <div className="glass-panel fade-in-up" style={{gridColumn:'1 / -1', textAlign:'center', padding:'100px 20px'}}>
-            <div style={{fontSize:'5rem', marginBottom:'20px'}}>👨‍🏫</div>
-            <h1 style={{color:'var(--primary)', marginBottom:'15px', fontSize:'2.5rem'}}>Portal Docente</h1>
-            <p style={{color:'#666', maxWidth:'600px', margin:'0 auto', fontSize:'1.1rem'}}>Gestiona tu programación académica de forma privada y segura.</p>
-            <div style={{marginTop:'40px', fontSize:'1.2rem', color:'#333', fontWeight:'bold'}}>{formatoFechaHora().fecha}</div>
-            <div style={{marginTop:'80px', cursor:'pointer', opacity:0.3, fontSize:'0.8rem'}} onClick={()=>setView('login')}>🔒 Acceso Administrativo</div>
+      {/* MODAL DE SELECCIÓN DE PROGRAMA */}
+      {esperandoPrograma && programasDisponibles.length > 1 && (
+        <ProgramSelectionModal
+          programas={programasDisponibles}
+          onSelect={handleProgramSelect}
+          onCancel={handleProgramCancel}
+        />
+      )}
+
+      {anuncio && view !== 'admin' && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-7xl mx-auto mt-6 px-5"
+        >
+          <div className="bg-blue-50 border-l-4 border-blue-500 text-blue-700 p-4 rounded-r-lg shadow-sm flex items-start gap-3">
+            <span className="text-xl">📢</span>
+            <div className="flex-1 whitespace-pre-wrap">{anuncio}</div>
+            <button onClick={() => setAnuncio(null)} className="text-blue-400 hover:text-blue-600 font-bold px-2 py-1 cursor-pointer">✕</button>
           </div>
-        ) : (
-          <>
-            <aside className="sidebar glass-panel">
-              <div className="profile-header">
-                <div className="avatar">{docente.nombre.charAt(0)}</div>
-                <h3 style={{margin:0, color:'var(--primary)'}}>{getSaludo()},<br/>{docente.nombre.split(' ')[0]}</h3>
-                <div style={{fontSize:'0.85rem', color:'#888', marginTop:'5px', background:'#f5f5f5', padding:'3px 10px', borderRadius:'10px'}}>ID: {docente.idReal}</div>
-                {programasDisponibles.length > 1 && (
-                   <div style={{marginTop: '10px', fontSize: '0.8rem', fontWeight:'bold', color: 'var(--secondary)'}}>
-                      {programaSeleccionado}
-                   </div>
-                )}
-              </div>
-              {cursosFiltrados.map((c, i) => (
-                <button key={i} onClick={()=>setSelectedCursoIdx(i)} className={`course-btn ${selectedCursoIdx === i ? 'active' : ''}`}>
-                  <div style={{fontWeight:'bold', fontSize:'0.95rem', color:'var(--primary)'}}>{c.materia}</div>
-                  <div className="bloque-badge">{c.bloque}</div>
-                </button>
-              ))}
-            </aside>
+        </motion.div>
+      )}
 
-            <section className="dashboard-column">
-              {cursoActivo && (
-                <div className="hero-card">
-                  <h1 style={{margin:'0 0 10px', fontSize:'2.2rem'}}>{cursoActivo.materia}</h1>
-                  <div style={{fontSize:'1.1rem', opacity:0.9}}>{cursoActivo.grupo}</div>
-                  
-                  {/* Progress Bar Container */}
-                  <div style={{marginTop: '20px'}}>
-                      <div style={{display:'flex', justifyContent:'space-between', fontSize:'0.85rem', opacity:0.9, fontWeight:'bold', marginBottom:'5px'}}>
-                          <span>Progreso del Curso</span>
-                          <span>{progressPercent}% Completado</span>
-                      </div>
-                      <div className="progress-container">
-                          <div className="progress-bar" style={{width: `${progressPercent}%`}}></div>
-                      </div>
-                  </div>
+      <main className="max-w-7xl mx-auto mt-10 px-5 grid grid-cols-1 md:grid-cols-[320px_1fr] gap-10 pb-24">
+        <AnimatePresence mode="wait">
+          {!docente ? (
+            searchAttempted ? (
+              <NotFoundScreen
+                searchId={searchId}
+                onReset={handleReset}
+                whatsappNumber={WHATSAPP_NUMBER}
+              />
+            ) : (
+              <WelcomeScreen
+                fechaEspanol={formatoFechaHora(fechaActual).fecha}
+                onAdminAccess={() => setView('login')}
+              />
+            )
+          ) : (
+            <motion.div
+              key="dashboard"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-[320px_1fr] gap-10"
+            >
+              <Sidebar
+                docente={{ ...docente, cursos: cursosFiltrados }}
+                selectedCursoIdx={selectedCursoIdx}
+                setSelectedCursoIdx={setSelectedCursoIdx}
+              />
 
-                  <div className="hero-info-grid">
-                    <div className="hero-info-item">📅 <strong>{cursoActivo.fInicio}</strong> (Inicio)</div>
-                    <div className="hero-info-item">🏁 <strong>{cursoActivo.fFin}</strong> (Fin)</div>
-                  </div>
+              <section ref={detailSectionRef} className="flex flex-col gap-8 relative">
+                <div className="sticky top-0 z-40 pt-6 pb-2 bg-[#F0F2F5] dark:bg-slate-900 transition-colors duration-300">
+                  <HeroCard cursoActivo={cursoActivo} />
+                  {/* Desvanecido inferior */}
+                  <div className="absolute -bottom-6 left-0 right-0 h-6 bg-gradient-to-b from-[#F0F2F5] dark:from-slate-900 to-transparent pointer-events-none" />
                 </div>
-              )}
-
-              <div className="timeline-container glass-panel">
-                <h3 style={{color:'var(--primary)', marginBottom:'30px'}}>Cronograma de Actividades</h3>
-                {cursoActivo && cursoActivo.semanas.map((s, idx) => {
-                  let textFaltan = "";
-                  let statusClass = "";
-                  if (s.parsedDate && !isNaN(s.parsedDate.getTime())) {
-                      const diffTime = Math.floor((s.parsedDate.getTime() - fechaActual.getTime()) / (1000 * 60 * 60 * 24)) + 1; 
-                      if (diffTime > 1) { textFaltan = `Faltan ${diffTime} días`; statusClass = "future"; }
-                      else if (diffTime === 1) { textFaltan = "Mañana"; statusClass = "future"; }
-                      else if (diffTime === 0 || (fechaActual.toDateString() === s.parsedDate.toDateString())) { textFaltan = "Hoy"; statusClass = "today"; }
-                      else { textFaltan = "Finalizada"; statusClass = "past"; }
-                  }
-
-                  return (
-                  <div key={idx} className="timeline-item">
-                    <div className="timeline-line"></div>
-                    <div className="date-circle">
-                      <span style={{fontSize:'0.65rem'}}>SEM</span>
-                      <span style={{fontSize:'1.3rem'}}>{s.num}</span>
-                    </div>
-                    <div className="timeline-content">
-                      <div style={{fontWeight:'bold', fontSize:'1.1rem', display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-                          <span>{s.fecha}</span>
-                          {textFaltan && (
-                            <span className={`badge-faltan ${statusClass}`}>{textFaltan}</span>
-                          )}
-                      </div>
-                      {s.tipo === 'INDEPENDIENTE' ? (
-                          <div className="offline-badge">🏠 {s.displayTexto}</div>
-                      ) : s.tipo === 'PRESENCIAL' ? (
-                          <div className="offline-badge">🏫 {s.displayTexto} <br/> ⏰ {s.hora}</div>
-                      ) : (
-                          <>
-                            <div style={{color:'#666', marginTop:'5px'}}>⏰ {s.hora}</div>
-                            {s.zoomLink && (
-                              <a href={s.zoomLink} target="_blank" rel="noreferrer" className="zoom-mini-btn" onClick={()=>registrarLog(docente.idReal, `🎥 Zoom Sem ${s.num}`)}>🎥 Unirse a Zoom</a>
-                            )}
-                          </>
-                      )}
-                    </div>
-                  </div>
-                  )
-                })}
-              </div>
-            </section>
-          </>
-        )}
+                <Timeline cursoActivo={cursoActivo} docenteId={docente.idReal} />
+              </section>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
-      
-      <a href={`https://wa.me/${WHATSAPP_NUMBER}`} target="_blank" rel="noreferrer" className="whatsapp-btn">💬 Ayuda</a>
+
+      {/* Floating Action Buttons */}
+      <div className="fixed bottom-8 right-8 flex flex-col gap-4 z-50">
+        <a
+          href={`https://wa.me/${WHATSAPP_NUMBER}`}
+          target="_blank"
+          rel="noreferrer"
+          onClick={() => trackAppEvent("click_whatsapp_support", { location: "floating_button" })}
+          className="bg-[#25D366] text-white w-14 h-14 rounded-full font-bold shadow-[0_10px_30px_rgba(37,211,102,0.4)] hover:scale-110 transition-transform flex items-center justify-center text-2xl no-underline"
+          title="Soporte por WhatsApp"
+        >
+          💬
+        </a>
+      </div>
+      <Analytics />
+      <SpeedInsights />
     </div>
   );
 };
