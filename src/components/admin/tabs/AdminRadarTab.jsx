@@ -7,6 +7,7 @@ const PROGRAMAS = [
     { value: 'SST',  label: 'SST' },
     { value: 'AP',   label: 'Administración Pública' },
     { value: 'P500', label: '500 x 500' },
+    { value: 'VOC',  label: 'Vocacional' },
 ];
 
 const PROGRAMA_LABEL = {
@@ -14,6 +15,7 @@ const PROGRAMA_LABEL = {
     SST:  'SST',
     AP:   'Adm. Pública',
     P500: '500x500',
+    VOC:  'Vocacional',
 };
 
 const getTargetProgram = (programaStr = '') => {
@@ -103,6 +105,7 @@ const ProgramaChip = ({ targetProgram }) => {
         SST:  'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300',
         AP:   'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300',
         P500: 'bg-teal-100 text-teal-800 dark:bg-teal-900/40 dark:text-teal-300',
+        VOC:  'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
     };
     return (
         <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${colors[targetProgram] || 'bg-gray-100 text-gray-700 dark:bg-slate-700 dark:text-gray-300'}`}>
@@ -189,7 +192,7 @@ const AdminRadarTab = ({ loadingDocentes, docentesList, onSelectDocente, refetch
                 await set(ref(db, `docentes/${oldHash}`), null);
             }
 
-            alert('✅ Estudiante actualizado exitosamente');
+            alert('✅ Docente actualizado exitosamente');
             setEditingDocente(null);
             if (refetchData) refetchData();
         } catch (err) {
@@ -206,7 +209,7 @@ const AdminRadarTab = ({ loadingDocentes, docentesList, onSelectDocente, refetch
         setSavingEdit(true);
         try {
             await set(ref(db, `docentes/${editingDocente.id}`), null);
-            alert('🗑️ Estudiante eliminado exitosamente.');
+            alert('🗑️ Docente eliminado exitosamente.');
             setEditingDocente(null);
             if (refetchData) refetchData();
         } catch (err) {
@@ -246,7 +249,7 @@ const AdminRadarTab = ({ loadingDocentes, docentesList, onSelectDocente, refetch
                 lastUpdate: new Date().toISOString(),
             });
 
-            alert(`✅ Estudiante "${nombre}" agregado exitosamente.`);
+            alert(`✅ Docente "${nombre}" agregado exitosamente.`);
             setShowAddModal(false);
             setAddFormData(EMPTY_FORM);
             if (refetchData) refetchData();
@@ -502,7 +505,7 @@ const AdminRadarTab = ({ loadingDocentes, docentesList, onSelectDocente, refetch
 
                             <div className="mt-2">
                                 <button type="submit" disabled={savingAdd} className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors cursor-pointer disabled:opacity-50 shadow-md text-sm">
-                                    {savingAdd ? '⏳ Agregando...' : '✅ Agregar Estudiante a Firebase'}
+                                    {savingAdd ? '⏳ Agregando...' : '✅ Agregar Docente a Firebase'}
                                 </button>
                             </div>
                         </form>

@@ -48,6 +48,9 @@ export const useAdminUploader = () => {
         const correo = String(cleanRow['CORREO'] || cleanRow['EMAIL'] || cleanRow['CORREO INSTITUCIONAL'] || '').trim();
         const programa = String(cleanRow['PROGRAMA'] || '').trim();
         const codigo_programa = String(cleanRow['COD PROGRAMA'] || cleanRow['CODIGO PROGRAMA'] || '').trim();
+        const grupo = String(cleanRow['GRUPO'] || cleanRow['GRUPO DOCENTE'] || cleanRow['GR'] || '').trim();
+        const pago = String(cleanRow['PAGO'] || cleanRow['ESTADO PAGO'] || cleanRow['ESTADO'] || cleanRow['PAGADO'] || '').trim().toUpperCase();
+        const vinculacion = String(cleanRow['VINCULACION'] || cleanRow['TIPO VINCULACION'] || cleanRow['TIPO'] || '').trim();
 
         const hash = await hashDocumento(rawId);
         return {
@@ -58,6 +61,9 @@ export const useAdminUploader = () => {
             correo: correo || '',
             programa: programa || '',
             codigo_programa: codigo_programa || '',
+            grupo: grupo || '',
+            pago: pago || 'NO',
+            vinculacion: vinculacion || '',
             targetProgram: targetProgram || 'SST',
             hashId: hash,
             lastUpdate: new Date().toISOString(),

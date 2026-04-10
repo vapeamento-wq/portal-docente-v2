@@ -1,61 +1,62 @@
 import React from 'react';
 
+const PROGRAMAS = [
+    { value: 'SST',  label: 'SST (Seguridad y Salud)' },
+    { value: 'AP',   label: 'Administración Pública' },
+    { value: 'SN',   label: 'Semestre de Nivelación' },
+    { value: 'P500', label: '500 X 500' },
+    { value: 'VOC',  label: 'Vocacional' },
+];
+
 const AdminUploader = ({ onFileUpload, uploading, uploadResult, onDelete }) => {
     const [selectedProgram, setSelectedProgram] = React.useState('SST');
-    const [uploadMode, setUploadMode] = React.useState('students'); // 'students' or 'schedules'
 
     return (
         <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm text-center relative overflow-hidden">
-            <h3 className="m-0 mb-6 text-slate-800 dark:text-blue-400 font-bold flex items-center justify-center gap-2">
-                <span className="text-2xl">{uploadMode === 'students' ? '📥' : '📅'}</span> 
-                {uploadMode === 'students' ? 'Actualizar Docentes' : 'Actualizar Horarios'}
+            <h3 className="m-0 mb-2 text-slate-800 dark:text-blue-400 font-bold flex items-center justify-center gap-2">
+                <span className="text-2xl">📥</span>
+                Actualizar BD (Desde Excel)
             </h3>
-
-            {/* Selector de Modo */}
-            <div className="flex bg-slate-200 dark:bg-slate-800 p-1 rounded-xl mb-6 max-w-[280px] mx-auto border border-slate-300 dark:border-slate-700">
-                <button
-                    onClick={() => setUploadMode('students')}
-                    className={`flex-1 py-2 text-[10px] font-black rounded-lg transition-all uppercase tracking-widest ${uploadMode === 'students' ? 'bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-200 shadow-sm' : 'text-slate-500'}`}
-                >Docentes</button>
-                <button
-                    onClick={() => setUploadMode('schedules')}
-                    className={`flex-1 py-2 text-[10px] font-black rounded-lg transition-all uppercase tracking-widest ${uploadMode === 'schedules' ? 'bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-200 shadow-sm' : 'text-slate-500'}`}
-                >Horarios</button>
-            </div>
-
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-5 leading-tight">
-                {uploadMode === 'students' 
-                    ? 'Sube el Excel de un programa. El sistema lo analizará y lo fusionará sin borrar los demás programas.' 
-                    : 'Sincroniza el cronograma de 16 semanas desde el Excel de horarios.'}
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 leading-tight">
+                Sube el archivo Excel de un programa. El sistema lo analizará y lo fusionará sin borrar los demás programas.
             </p>
 
-            <div className="mb-6 text-left">
+            {/* Selector de programa */}
+            <div className="mb-5 text-left">
                 <label className="block text-[11px] uppercase tracking-wider font-bold text-slate-400 dark:text-slate-500 mb-2">
-                    Programa Destino
+                    Programa Académico:
                 </label>
-                <select 
+                <select
                     value={selectedProgram}
                     onChange={(e) => setSelectedProgram(e.target.value)}
                     disabled={uploading}
                     className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm"
                 >
-                    <option value="SST">SST (Seguridad y Salud)</option>
-                    <option value="AP">Administración Pública</option>
-                    <option value="SN">Semestre de Nivelación</option>
-                    <option value="P500">500 X 500</option>
-                    <option value="VOC">Vocacional</option>
+                    {PROGRAMAS.map(p => (
+                        <option key={p.value} value={p.value}>{p.label}</option>
+                    ))}
                 </select>
-                <p className="mt-2 text-[10px] text-slate-400 dark:text-slate-500 leading-tight">
-                    Elige a qué categoría pertenecen los estudiantes de este archivo.
-                </p>
+                {!selectedProgram && (
+                    <p className="text-red-500 text-xs font-bold mt-2">
+                        Paso 1: Selecciona un programa para habilitar la carga.
+                    </p>
+                )}
             </div>
 
+            {/* Botón de carga */}
             <input
                 type="file"
                 accept=".xlsx, .xls"
-                onChange={(e) => onFileUpload(e, selectedProgram, uploadMode)}
-                disabled={uploading}
-                className="block mx-auto mb-4 text-sm text-transparent w-full max-w-[200px]
+                onChange={(e) => {
+                    if (!selectedProgram) {
+                        alert('Selecciona un programa primero.');
+                        e.target.value = '';
+                        return;
+                    }
+                    onFileUpload(e, selectedProgram, 'unified');
+                }}
+                disabled={uploading || !selectedProgram}
+                className="block mx-auto mb-4 text-sm text-transparent w-full max-w-[220px]
                     file:mr-0 file:py-3 file:px-6
                     file:rounded-full file:border-0
                     file:text-sm file:font-bold
@@ -81,9 +82,9 @@ const AdminUploader = ({ onFileUpload, uploading, uploadResult, onDelete }) => {
             )}
 
             <div className="mt-8 pt-6 border-t border-gray-100 dark:border-slate-700">
-                <button 
+                <button
                     onClick={() => onDelete(selectedProgram)}
-                    disabled={uploading}
+                    disabled={uploading || !selectedProgram}
                     className="w-full py-3 rounded-xl bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 font-bold text-sm transition-colors border-none cursor-pointer flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     🗑️ Borrar Datos: {selectedProgram}

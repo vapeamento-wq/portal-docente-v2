@@ -16,7 +16,6 @@ const TABS = [
     { id: 'datos',      label: '⚙️ Datos',      minRol: 1 },
     { id: 'directorio', label: '👥 Directorio',  minRol: 2 },
     { id: 'analytics',  label: '📊 Analytics',   minRol: 2 },
-    { id: 'crm',        label: '🎧 CRM',         minRol: 3 },
     { id: 'roles',      label: '🔐 Roles',       minRol: 1 },
 ];
 
@@ -89,9 +88,19 @@ const AdminPanel = ({ currentUser, onBack, onSelectDocente, onLogout }) => {
 
     const [statsDateRange, setStatsDateRange] = useState('7');
 
-    const handleUnifiedUpload = (event, program, mode) => {
-        if (mode === 'students') studentUploader.handleFileUpload(event, program);
-        else scheduleUploader.handleScheduleUpload(event, program);
+    const handleUnifiedUpload = async (event, program, mode) => {
+        if (mode === 'unified') {
+            // Opción A: mismo archivo tiene info de docentes Y horarios
+            const file = event.target.files?.[0];
+            if (!file) return;
+            const makeEvent = (f) => ({ target: { files: [f] } });
+            await studentUploader.handleFileUpload(makeEvent(file), program);
+            await scheduleUploader.handleScheduleUpload(makeEvent(file), program);
+        } else if (mode === 'students') {
+            studentUploader.handleFileUpload(event, program);
+        } else {
+            scheduleUploader.handleScheduleUpload(event, program);
+        }
     };
 
     const isUploading      = studentUploader.uploading || scheduleUploader.uploading;
@@ -181,11 +190,6 @@ const AdminPanel = ({ currentUser, onBack, onSelectDocente, onLogout }) => {
                             setStatsDateRange={setStatsDateRange}
                             logs={adminData.logs}
                         />
-                    )}
-
-                    {/* 🎧 CRM — Todos los roles */}
-                    {activeTab === 'crm' && (
-                        <AdminCrmTab tickets={adminData.tickets} />
                     )}
 
                     {/* 🔐 Roles — solo Rol 1 */}
