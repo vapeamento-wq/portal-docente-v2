@@ -17,14 +17,28 @@ const ADMIN_PASS = "admincreo";
 
 // --- 🎨 MAPA DE COLORES POR PROGRAMA (igual al portal estudiante) ---
 const PROGRAM_COLORS = {
-  'SST':                     { bg: 'linear-gradient(135deg, #7f1d1d 0%, #b91c1c 100%)', accent: '#ef4444', light: '#fee2e2', text: '#7f1d1d', icon: '🛡️' },
-  'Administración Pública':  { bg: 'linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 100%)', accent: '#3b82f6', light: '#dbeafe', text: '#1e40af', icon: '🏛️' },
-  'Semestre de Nivelación':  { bg: 'linear-gradient(135deg, #4a1d96 0%, #7c3aed 100%)', accent: '#8b5cf6', light: '#ede9fe', text: '#5b21b6', icon: '📚' },
-  '500 X 500':               { bg: 'linear-gradient(135deg, #78350f 0%, #d97706 100%)', accent: '#f59e0b', light: '#fef3c7', text: '#92400e', icon: '🌟' },
-  'Vocacional':              { bg: 'linear-gradient(135deg, #064e3b 0%, #059669 100%)', accent: '#10b981', light: '#d1fae5', text: '#065f46', icon: '🎓' },
-  'Programa Principal':      { bg: 'linear-gradient(135deg, #003366 0%, #004080 100%)', accent: '#db9b32', light: '#fef9ec', text: '#003366', icon: '👨‍🏫' },
+  'SST':                       { bg: 'linear-gradient(135deg, #7c2d12 0%, #ea580c 100%)', accent: '#f97316', light: '#fff7ed', text: '#9a3412', icon: '🛡️' },
+  'SST (Seguridad y Salud)':   { bg: 'linear-gradient(135deg, #7c2d12 0%, #ea580c 100%)', accent: '#f97316', light: '#fff7ed', text: '#9a3412', icon: '🛡️' },
+  'Administración Pública':    { bg: 'linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 100%)', accent: '#3b82f6', light: '#dbeafe', text: '#1e40af', icon: '🏛️' },
+  'Semestre de Nivelación':    { bg: 'linear-gradient(135deg, #4a1d96 0%, #7c3aed 100%)', accent: '#8b5cf6', light: '#ede9fe', text: '#5b21b6', icon: '📚' },
+  '500 X 500':                 { bg: 'linear-gradient(135deg, #78350f 0%, #d97706 100%)', accent: '#f59e0b', light: '#fef3c7', text: '#92400e', icon: '🌟' },
+  'Vocacional':                { bg: 'linear-gradient(135deg, #064e3b 0%, #059669 100%)', accent: '#10b981', light: '#d1fae5', text: '#065f46', icon: '🎓' },
+  'Programa Principal':        { bg: 'linear-gradient(135deg, #003366 0%, #004080 100%)', accent: '#db9b32', light: '#fef9ec', text: '#003366', icon: '👨‍🏫' },
 };
-const getProgramColor = (prog) => PROGRAM_COLORS[prog] || PROGRAM_COLORS['Programa Principal'];
+// Función que normaliza el nombre y devuelve el color correcto
+const getProgramColor = (prog) => {
+  if (!prog) return PROGRAM_COLORS['Programa Principal'];
+  // Buscar coincidencia exacta primero
+  if (PROGRAM_COLORS[prog]) return PROGRAM_COLORS[prog];
+  // Buscar por palabras clave
+  const p = prog.toUpperCase();
+  if (p.includes('SST') || p.includes('SEGURIDAD')) return PROGRAM_COLORS['SST'];
+  if (p.includes('ADMINISTR') || p.includes('PÚBLICA') || p.includes('PUBLICA')) return PROGRAM_COLORS['Administración Pública'];
+  if (p.includes('NIVELAC')) return PROGRAM_COLORS['Semestre de Nivelación'];
+  if (p.includes('500')) return PROGRAM_COLORS['500 X 500'];
+  if (p.includes('VOCAC')) return PROGRAM_COLORS['Vocacional'];
+  return PROGRAM_COLORS['Programa Principal'];
+};
 
 // --- COMPONENTE TOAST ---
 const Toast = ({ msg, show }) => (
@@ -384,8 +398,8 @@ const App = () => {
         /* Multi Program & Badges */
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 3000; display: flex; align-items: center; justify-content: center; }
         .modal-content { background: white; padding: 40px; border-radius: 24px; text-align: center; max-width: 440px; width: 92%; box-shadow: 0 30px 60px rgba(0,0,0,0.2); }
-        .program-btn { display: flex; align-items: center; gap: 14px; width: 100%; padding: 16px 20px; margin-bottom: 12px; border: 2px solid transparent; border-radius: 14px; font-weight: bold; cursor: pointer; transition: all 0.2s; font-size: 1rem; text-align: left; box-sizing: border-box; }
-        .program-btn:hover { transform: translateX(4px); filter: brightness(1.05); }
+        .program-btn { display: flex; align-items: center; gap: 14px; width: 100%; padding: 16px 20px; margin-bottom: 12px; border: none; border-left: 5px solid; border-radius: 14px; font-weight: bold; cursor: pointer; transition: all 0.2s; font-size: 1rem; text-align: left; box-sizing: border-box; }
+        .program-btn:hover { transform: translateX(5px); box-shadow: 0 6px 20px rgba(0,0,0,0.12); }
 
         .badge-faltan { font-size: 0.75rem; padding: 4px 10px; border-radius: 12px; font-weight: bold; }
         .badge-faltan.future { background: #e3f2fd; color: #1565c0; }
@@ -413,14 +427,20 @@ const App = () => {
                       const c = getProgramColor(prog);
                       return (
                       <button key={i} className="program-btn"
-                          style={{ background: c.light, color: c.text, borderColor: c.light }}
+                          style={{ 
+                            background: c.light, 
+                            color: c.text, 
+                            borderLeftColor: c.accent 
+                          }}
                           onClick={() => {
                               setProgramaSeleccionado(prog);
                               setShowProgramSelector(false);
                               setSelectedCursoIdx(0);
                           }}>
-                          <span style={{fontSize:'1.4rem'}}>{c.icon}</span>
-                          <span>{prog}</span>
+                          <span style={{fontSize:'1.6rem', width:'32px', textAlign:'center'}}>{c.icon}</span>
+                          <div>
+                            <div style={{fontWeight:'800', fontSize:'1rem'}}>{prog}</div>
+                          </div>
                       </button>
                       );
                   })}
