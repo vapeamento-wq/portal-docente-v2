@@ -27,7 +27,7 @@ const ProgramSelectionModal = ({ programas, onSelect, onCancel }) => {
                             onClick={() => onSelect(prog)}
                             className="w-full text-left p-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-300 dark:hover:border-blue-700 transition-all cursor-pointer font-semibold text-gray-800 dark:text-gray-200 flex items-center justify-between group"
                         >
-                            <span>{prog === 'SST' ? 'SST (Seguridad y Salud)' : prog === 'SN' ? 'Semestre de Nivelación' : prog}</span>
+                            <span>{prog === 'SST' ? 'SST (Seguridad y Salud)' : prog === 'SN' ? 'Semestre de Nivelación' : prog === 'Vocacional' ? '🎓 Vocacional' : prog}</span>
                             <span className="text-blue-500 opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0 transition-all">
                                 →
                             </span>

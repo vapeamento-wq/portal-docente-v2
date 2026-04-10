@@ -51,10 +51,12 @@ const Sidebar = ({ docente, selectedCursoIdx, setSelectedCursoIdx }) => {
                                         : c.programa === 'SN'
                                             ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300 border border-purple-200 dark:border-purple-800/50'
                                             : c.programa === 'Programa 500*500'
-                                                ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300 border border-green-200 dark:border-green-800/50'
-                                                : 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50'
+                                                ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-800/50'
+                                                : c.programa === 'Vocacional'
+                                                    ? 'bg-teal-100 text-teal-800 dark:bg-teal-900/40 dark:text-teal-300 border border-teal-200 dark:border-teal-800/50'
+                                                    : 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50'
                                     }`}>
-                                    {c.programa === 'SST' ? 'Admin. en SST' : c.programa === 'SN' ? 'Semestre de Nivelación' : c.programa === 'Programa 500*500' ? 'Programa 500*500' : 'Admin. Pública'}
+                                    {c.programa === 'SST' ? 'Admin. en SST' : c.programa === 'SN' ? 'Semestre de Nivelación' : c.programa === 'Programa 500*500' ? 'Programa 500*500' : c.programa === 'Vocacional' ? '🎓 Vocacional' : 'Admin. Pública'}
                                 </div>
                             )}
                         </div>
