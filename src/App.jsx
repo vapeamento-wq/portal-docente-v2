@@ -15,6 +15,17 @@ const URL_FIREBASE_CONSOLE = "https://console.firebase.google.com/";
 const WHATSAPP_NUMBER = "573106964025";
 const ADMIN_PASS = "admincreo"; 
 
+// --- 🎨 MAPA DE COLORES POR PROGRAMA (igual al portal estudiante) ---
+const PROGRAM_COLORS = {
+  'SST':                     { bg: 'linear-gradient(135deg, #7f1d1d 0%, #b91c1c 100%)', accent: '#ef4444', light: '#fee2e2', text: '#7f1d1d', icon: '🛡️' },
+  'Administración Pública':  { bg: 'linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 100%)', accent: '#3b82f6', light: '#dbeafe', text: '#1e40af', icon: '🏛️' },
+  'Semestre de Nivelación':  { bg: 'linear-gradient(135deg, #4a1d96 0%, #7c3aed 100%)', accent: '#8b5cf6', light: '#ede9fe', text: '#5b21b6', icon: '📚' },
+  '500 X 500':               { bg: 'linear-gradient(135deg, #78350f 0%, #d97706 100%)', accent: '#f59e0b', light: '#fef3c7', text: '#92400e', icon: '🌟' },
+  'Vocacional':              { bg: 'linear-gradient(135deg, #064e3b 0%, #059669 100%)', accent: '#10b981', light: '#d1fae5', text: '#065f46', icon: '🎓' },
+  'Programa Principal':      { bg: 'linear-gradient(135deg, #003366 0%, #004080 100%)', accent: '#db9b32', light: '#fef9ec', text: '#003366', icon: '👨‍🏫' },
+};
+const getProgramColor = (prog) => PROGRAM_COLORS[prog] || PROGRAM_COLORS['Programa Principal'];
+
 // --- COMPONENTE TOAST ---
 const Toast = ({ msg, show }) => (
   <div className={`toast-notification ${show ? 'show' : ''}`}>{msg}</div>
@@ -322,7 +333,7 @@ const App = () => {
     <div className="portal-container">
       <Toast msg={toast.msg} show={toast.show} />
       <style>{`
-        :root { --primary: #003366; --secondary: #db9b32; --bg: #F0F2F5; --text: #1A1A1A; }
+        :root { --primary: #003366; --secondary: #db9b32; --bg: #F0F2F5; --text: #1A1A1A; --prog-accent: #db9b32; --prog-light: #fef9ec; }
         body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
         
         .fade-in-up { animation: fadeInUp 0.6s ease-out forwards; }
@@ -349,7 +360,7 @@ const App = () => {
         .course-btn.active .bloque-badge { background: var(--primary); color: white; }
         .bloque-badge { display: inline-block; font-size: 0.7rem; background: #eee; padding: 2px 8px; border-radius: 10px; margin-top: 5px; font-weight: bold; color: #555; }
 
-        .hero-card { background: linear-gradient(135deg, #003366 0%, #004080 100%); color: white; padding: 40px; border-radius: 30px; position: relative; overflow: hidden; margin-bottom: 40px; box-shadow: 0 20px 40px rgba(0, 51, 102, 0.3); }
+        .hero-card { background: var(--hero-gradient, linear-gradient(135deg, #003366 0%, #004080 100%)); color: white; padding: 40px; border-radius: 30px; position: relative; overflow: hidden; margin-bottom: 40px; box-shadow: 0 20px 40px rgba(0,0,0,0.25); transition: background 0.4s ease; }
         .hero-info-grid { display: flex; gap: 20px; margin-top: 25px; flex-wrap: wrap; background: rgba(0,0,0,0.25); padding: 15px 20px; border-radius: 15px; backdrop-filter: blur(5px); }
         .hero-info-item { display: flex; align-items: center; gap: 8px; font-weight: 500; font-size: 0.95rem; }
         
@@ -372,9 +383,9 @@ const App = () => {
 
         /* Multi Program & Badges */
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 3000; display: flex; align-items: center; justify-content: center; }
-        .modal-content { background: white; padding: 40px; border-radius: 20px; text-align: center; max-width: 400px; width: 90%; }
-        .program-btn { display: block; width: 100%; padding: 15px; margin-bottom: 10px; background: #f0f2f5; border: 2px solid transparent; border-radius: 10px; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 1rem; color: var(--primary); }
-        .program-btn:hover { background: #e0e4e8; border-color: var(--secondary); }
+        .modal-content { background: white; padding: 40px; border-radius: 24px; text-align: center; max-width: 440px; width: 92%; box-shadow: 0 30px 60px rgba(0,0,0,0.2); }
+        .program-btn { display: flex; align-items: center; gap: 14px; width: 100%; padding: 16px 20px; margin-bottom: 12px; border: 2px solid transparent; border-radius: 14px; font-weight: bold; cursor: pointer; transition: all 0.2s; font-size: 1rem; text-align: left; box-sizing: border-box; }
+        .program-btn:hover { transform: translateX(4px); filter: brightness(1.05); }
 
         .badge-faltan { font-size: 0.75rem; padding: 4px 10px; border-radius: 12px; font-weight: bold; }
         .badge-faltan.future { background: #e3f2fd; color: #1565c0; }
@@ -395,18 +406,25 @@ const App = () => {
       {showProgramSelector && (
           <div className="modal-overlay">
               <div className="modal-content fade-in-up">
-                  <h2 style={{color: 'var(--primary)', marginBottom: '10px'}}>Selecciona tu Programa</h2>
-                  <p style={{color: '#666', marginBottom: '25px'}}>Hemos detectado que dictas clases en múltiples programas. ¿Cuál deseas visualizar?</p>
-                  {programasDisponibles.map((prog, i) => (
-                      <button key={i} className="program-btn" onClick={() => {
-                          setProgramaSeleccionado(prog);
-                          setShowProgramSelector(false);
-                          setSelectedCursoIdx(0);
-                      }}>
-                          {prog}
+                  <div style={{fontSize:'2.5rem', marginBottom:'10px'}}>🎓</div>
+                  <h2 style={{color: 'var(--primary)', marginBottom: '8px', fontSize:'1.4rem'}}>Selecciona tu Programa</h2>
+                  <p style={{color: '#888', marginBottom: '28px', fontSize:'0.9rem'}}>Dictas en múltiples programas. ¿Cuál deseas visualizar?</p>
+                  {programasDisponibles.map((prog, i) => {
+                      const c = getProgramColor(prog);
+                      return (
+                      <button key={i} className="program-btn"
+                          style={{ background: c.light, color: c.text, borderColor: c.light }}
+                          onClick={() => {
+                              setProgramaSeleccionado(prog);
+                              setShowProgramSelector(false);
+                              setSelectedCursoIdx(0);
+                          }}>
+                          <span style={{fontSize:'1.4rem'}}>{c.icon}</span>
+                          <span>{prog}</span>
                       </button>
-                  ))}
-                  <button onClick={handleReset} style={{marginTop: '15px', color:'red', background:'transparent', border:'none', cursor:'pointer', fontWeight:'bold'}}>
+                      );
+                  })}
+                  <button onClick={handleReset} style={{marginTop: '10px', color:'#aaa', background:'transparent', border:'none', cursor:'pointer', fontSize:'0.85rem'}}>
                       Cancelar
                   </button>
               </div>
@@ -431,7 +449,11 @@ const App = () => {
         <div className="header-content">
           <div className="brand" onClick={handleReset} style={{cursor:'pointer'}}>
             <h1>PORTAL DOCENTES</h1>
-            <h2>PROGRAMA DE ADMINISTRACIÓN DE LA SEGURIDAD Y SALUD EN EL TRABAJO </h2>
+            <h2>
+              {programaSeleccionado && programaSeleccionado !== 'Programa Principal'
+                ? `${getProgramColor(programaSeleccionado).icon} ${programaSeleccionado.toUpperCase()}`
+                : 'CORPORACIÓN UNIVERSITARIA CREO'}
+            </h2>
           </div>
           <div className="actions">
             {!docente && (
@@ -458,37 +480,62 @@ const App = () => {
           <>
             <aside className="sidebar glass-panel">
               <div className="profile-header">
-                <div className="avatar">{docente.nombre.charAt(0)}</div>
+                <div className="avatar" style={programaSeleccionado ? {background: getProgramColor(programaSeleccionado).light, color: getProgramColor(programaSeleccionado).text, boxShadow: `0 10px 20px ${getProgramColor(programaSeleccionado).accent}44`} : {}}>
+                  {programaSeleccionado ? getProgramColor(programaSeleccionado).icon : docente.nombre.charAt(0)}
+                </div>
                 <h3 style={{margin:0, color:'var(--primary)'}}>{getSaludo()},<br/>{docente.nombre.split(' ')[0]}</h3>
                 <div style={{fontSize:'0.85rem', color:'#888', marginTop:'5px', background:'#f5f5f5', padding:'3px 10px', borderRadius:'10px'}}>ID: {docente.idReal}</div>
-                {programasDisponibles.length > 1 && (
-                   <div style={{marginTop: '10px', fontSize: '0.8rem', fontWeight:'bold', color: 'var(--secondary)'}}>
-                      {programaSeleccionado}
+                {programaSeleccionado && (
+                   <div style={{
+                     marginTop: '10px', fontSize: '0.75rem', fontWeight:'bold',
+                     color: getProgramColor(programaSeleccionado).text,
+                     background: getProgramColor(programaSeleccionado).light,
+                     padding: '4px 12px', borderRadius: '20px', display:'inline-block'
+                   }}>
+                      {getProgramColor(programaSeleccionado).icon} {programaSeleccionado}
                    </div>
                 )}
               </div>
-              {cursosFiltrados.map((c, i) => (
-                <button key={i} onClick={()=>setSelectedCursoIdx(i)} className={`course-btn ${selectedCursoIdx === i ? 'active' : ''}`}>
-                  <div style={{fontWeight:'bold', fontSize:'0.95rem', color:'var(--primary)'}}>{c.materia}</div>
-                  <div className="bloque-badge">{c.bloque}</div>
+              {cursosFiltrados.map((c, i) => {
+                const pc = getProgramColor(programaSeleccionado);
+                const isActive = selectedCursoIdx === i;
+                return (
+                <button key={i} onClick={()=>setSelectedCursoIdx(i)}
+                  className={`course-btn ${isActive ? 'active' : ''}`}
+                  style={isActive ? {borderColor: pc.accent, background: pc.light} : {}}>
+                  <div style={{fontWeight:'bold', fontSize:'0.95rem', color: isActive ? pc.text : 'var(--primary)'}}>{c.materia}</div>
+                  <div className="bloque-badge"
+                    style={isActive ? {background: pc.accent, color: 'white'} : {}}>
+                    {c.bloque}
+                  </div>
                 </button>
-              ))}
+                );
+              })}
             </aside>
 
             <section className="dashboard-column">
-              {cursoActivo && (
-                <div className="hero-card">
-                  <h1 style={{margin:'0 0 10px', fontSize:'2.2rem'}}>{cursoActivo.materia}</h1>
-                  <div style={{fontSize:'1.1rem', opacity:0.9}}>{cursoActivo.grupo}</div>
+              {cursoActivo && (() => {
+                const pc = getProgramColor(programaSeleccionado);
+                return (
+                <div className="hero-card" style={{background: pc.bg, '--hero-gradient': pc.bg}}>
+                  {/* Decoración de fondo */}
+                  <div style={{position:'absolute', top:'-40px', right:'-40px', width:'180px', height:'180px', borderRadius:'50%', background:'rgba(255,255,255,0.06)', pointerEvents:'none'}}></div>
+                  <div style={{position:'absolute', bottom:'-30px', left:'-30px', width:'120px', height:'120px', borderRadius:'50%', background:'rgba(255,255,255,0.04)', pointerEvents:'none'}}></div>
                   
-                  {/* Progress Bar Container */}
-                  <div style={{marginTop: '20px'}}>
-                      <div style={{display:'flex', justifyContent:'space-between', fontSize:'0.85rem', opacity:0.9, fontWeight:'bold', marginBottom:'5px'}}>
+                  <div style={{display:'flex', alignItems:'center', gap:'12px', marginBottom:'10px'}}>
+                    <span style={{fontSize:'2rem'}}>{pc.icon}</span>
+                    <h1 style={{margin:0, fontSize:'2rem'}}>{cursoActivo.materia}</h1>
+                  </div>
+                  <div style={{fontSize:'1.05rem', opacity:0.85}}>{cursoActivo.grupo}</div>
+                  
+                  {/* Progress Bar */}
+                  <div style={{marginTop: '22px'}}>
+                      <div style={{display:'flex', justifyContent:'space-between', fontSize:'0.82rem', opacity:0.9, fontWeight:'bold', marginBottom:'6px'}}>
                           <span>Progreso del Curso</span>
                           <span>{progressPercent}% Completado</span>
                       </div>
                       <div className="progress-container">
-                          <div className="progress-bar" style={{width: `${progressPercent}%`}}></div>
+                          <div className="progress-bar" style={{width: `${progressPercent}%`, background: pc.accent}}></div>
                       </div>
                   </div>
 
@@ -497,7 +544,8 @@ const App = () => {
                     <div className="hero-info-item">🏁 <strong>{cursoActivo.fFin}</strong> (Fin)</div>
                   </div>
                 </div>
-              )}
+                );
+              })()}
 
               <div className="timeline-container glass-panel">
                 <h3 style={{color:'var(--primary)', marginBottom:'30px'}}>Cronograma de Actividades</h3>
