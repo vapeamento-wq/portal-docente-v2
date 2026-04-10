@@ -37,6 +37,11 @@ const App = () => {
   const [fechaActual, setFechaActual] = useState(new Date());
   const [toast, setToast] = useState({ show: false, msg: '' });
 
+  // Multi-programa
+  const [showProgramSelector, setShowProgramSelector] = useState(false);
+  const [programasDisponibles, setProgramasDisponibles] = useState([]);
+  const [programaSeleccionado, setProgramaSeleccionado] = useState(null);
+
   useEffect(() => {
     const timer = setInterval(() => {
         const now = new Date();
@@ -108,8 +113,17 @@ const App = () => {
         setLoading(false);
         if (data) {
           const cursosProcesados = procesarCursos(data.cursos);
-          setDocente({ ...data, cursos: cursosProcesados });
-          setSelectedCursoIdx(0);
+          const programas = [...new Set(cursosProcesados.map(c => c.programa || 'Programa Principal'))];
+          
+          if (programas.length > 1) {
+              setProgramasDisponibles(programas);
+              setDocente({ ...data, cursos: cursosProcesados });
+              setShowProgramSelector(true);
+          } else {
+              setProgramaSeleccionado(programas[0] || 'Programa Principal');
+              setDocente({ ...data, cursos: cursosProcesados });
+              setSelectedCursoIdx(0);
+          }
           // LOG: ✅ ÉXITO
           registrarLog(idBusqueda, '✅ Consulta Exitosa');
         } else {
@@ -188,20 +202,38 @@ const App = () => {
          if (esTrabajoIndependiente) horaDisplay = "Todo el día";
 
          const partes = texto.split('-');
-         let fechaDisplay = partes[0] || `Semana ${i+1}`;
+         let fechaDisplay = partes[0] ? partes[0].trim() : `Semana ${i+1}`;
          fechaDisplay = fechaDisplay.replace(/^202[0-9]\s*\/\s*/, '').replace(/\s*\/\s*/g, '/');
+
+         let parsedDate = null;
+         if (fechaDisplay.includes('/')) {
+             const fParts = fechaDisplay.split('/');
+             let d = parseInt(fParts[0], 10);
+             let m = parseInt(fParts[1], 10) - 1;
+             if (!isNaN(d) && !isNaN(m)) {
+                 let y = fParts.length > 2 ? parseInt(fParts[2], 10) : new Date().getFullYear();
+                 if (y < 100) y += 2000;
+                 parsedDate = new Date(y, m, d);
+             }
+         }
 
          semanasProcesadas.push({
            num: i + 1, fecha: fechaDisplay, hora: horaDisplay,
            tipo: tipo, displayTexto: displayTexto, ubicacion: ubicacion,
-           zoomId: zoomId, zoomLink: finalLink
+           zoomId: zoomId, zoomLink: finalLink, parsedDate: parsedDate
          });
       });
       return { ...curso, semanas: semanasProcesadas };
     });
   };
 
-  const handleReset = () => { setDocente(null); setSearchTerm(''); setSelectedCursoIdx(0); };
+  const handleReset = () => { 
+    setDocente(null); 
+    setSearchTerm(''); 
+    setSelectedCursoIdx(0); 
+    setProgramaSeleccionado(null);
+    setShowProgramSelector(false);
+  };
   
   const handleLogin = (e) => {
     e.preventDefault();
@@ -209,7 +241,20 @@ const App = () => {
     else alert("Contraseña incorrecta");
   };
 
-  const cursoActivo = docente && docente.cursos.length > 0 ? docente.cursos[selectedCursoIdx] : null;
+  const cursosFiltrados = docente ? docente.cursos.filter(c => (c.programa || 'Programa Principal') === programaSeleccionado) : [];
+  const cursoActivo = cursosFiltrados.length > 0 ? cursosFiltrados[selectedCursoIdx] : null;
+
+  // Calculo de Progreso General del Curso
+  let progressPercent = 0;
+  if (cursoActivo && cursoActivo.semanas) {
+      let passedWeeks = 0;
+      cursoActivo.semanas.forEach(s => {
+          if (s.parsedDate && s.parsedDate.getTime() <= fechaActual.getTime()) {
+              passedWeeks++;
+          }
+      });
+      progressPercent = cursoActivo.semanas.length ? Math.round((passedWeeks / cursoActivo.semanas.length) * 100) : 0;
+  }
 
   // --- VISTA ADMIN ---
   if (view === 'admin') {
@@ -325,6 +370,20 @@ const App = () => {
         .toast-notification { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px); background: rgba(0,0,0,0.85); color: white; padding: 12px 24px; border-radius: 50px; font-weight: bold; opacity: 0; transition: all 0.3s; }
         .toast-notification.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 
+        /* Multi Program & Badges */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 3000; display: flex; align-items: center; justify-content: center; }
+        .modal-content { background: white; padding: 40px; border-radius: 20px; text-align: center; max-width: 400px; width: 90%; }
+        .program-btn { display: block; width: 100%; padding: 15px; margin-bottom: 10px; background: #f0f2f5; border: 2px solid transparent; border-radius: 10px; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 1rem; color: var(--primary); }
+        .program-btn:hover { background: #e0e4e8; border-color: var(--secondary); }
+
+        .badge-faltan { font-size: 0.75rem; padding: 4px 10px; border-radius: 12px; font-weight: bold; }
+        .badge-faltan.future { background: #e3f2fd; color: #1565c0; }
+        .badge-faltan.today { background: #e8f5e9; color: #2e7d32; }
+        .badge-faltan.past { background: #ffebee; color: #c62828; }
+
+        .progress-container { width: 100%; background: rgba(255,255,255,0.2); height: 8px; border-radius: 10px; margin-top: 20px; overflow: hidden; }
+        .progress-bar { height: 100%; background: #4caf50; transition: width 0.5s ease; }
+
         @media (max-width: 900px) { 
           .main-content { display: flex; flex-direction: column; } 
           .sidebar { order: -1; display: flex; overflow-x: auto; padding: 15px; gap: 15px; }
@@ -332,6 +391,28 @@ const App = () => {
         }
       `}</style>
       
+      {/* VISTA SELECCIÓN PROGRAMA MULTIPLE */}
+      {showProgramSelector && (
+          <div className="modal-overlay">
+              <div className="modal-content fade-in-up">
+                  <h2 style={{color: 'var(--primary)', marginBottom: '10px'}}>Selecciona tu Programa</h2>
+                  <p style={{color: '#666', marginBottom: '25px'}}>Hemos detectado que dictas clases en múltiples programas. ¿Cuál deseas visualizar?</p>
+                  {programasDisponibles.map((prog, i) => (
+                      <button key={i} className="program-btn" onClick={() => {
+                          setProgramaSeleccionado(prog);
+                          setShowProgramSelector(false);
+                          setSelectedCursoIdx(0);
+                      }}>
+                          {prog}
+                      </button>
+                  ))}
+                  <button onClick={handleReset} style={{marginTop: '15px', color:'red', background:'transparent', border:'none', cursor:'pointer', fontWeight:'bold'}}>
+                      Cancelar
+                  </button>
+              </div>
+          </div>
+      )}
+
       {/* LOGIN ADMIN */}
       {view === 'login' && (
         <div style={{position:'fixed', top:0, left:0, width:'100%', height:'100%', background:'rgba(0,0,0,0.6)', backdropFilter:'blur(5px)', zIndex:2000, display:'flex', alignItems:'center', justifyContent:'center'}}>
@@ -380,8 +461,13 @@ const App = () => {
                 <div className="avatar">{docente.nombre.charAt(0)}</div>
                 <h3 style={{margin:0, color:'var(--primary)'}}>{getSaludo()},<br/>{docente.nombre.split(' ')[0]}</h3>
                 <div style={{fontSize:'0.85rem', color:'#888', marginTop:'5px', background:'#f5f5f5', padding:'3px 10px', borderRadius:'10px'}}>ID: {docente.idReal}</div>
+                {programasDisponibles.length > 1 && (
+                   <div style={{marginTop: '10px', fontSize: '0.8rem', fontWeight:'bold', color: 'var(--secondary)'}}>
+                      {programaSeleccionado}
+                   </div>
+                )}
               </div>
-              {docente.cursos.map((c, i) => (
+              {cursosFiltrados.map((c, i) => (
                 <button key={i} onClick={()=>setSelectedCursoIdx(i)} className={`course-btn ${selectedCursoIdx === i ? 'active' : ''}`}>
                   <div style={{fontWeight:'bold', fontSize:'0.95rem', color:'var(--primary)'}}>{c.materia}</div>
                   <div className="bloque-badge">{c.bloque}</div>
@@ -394,6 +480,18 @@ const App = () => {
                 <div className="hero-card">
                   <h1 style={{margin:'0 0 10px', fontSize:'2.2rem'}}>{cursoActivo.materia}</h1>
                   <div style={{fontSize:'1.1rem', opacity:0.9}}>{cursoActivo.grupo}</div>
+                  
+                  {/* Progress Bar Container */}
+                  <div style={{marginTop: '20px'}}>
+                      <div style={{display:'flex', justifyContent:'space-between', fontSize:'0.85rem', opacity:0.9, fontWeight:'bold', marginBottom:'5px'}}>
+                          <span>Progreso del Curso</span>
+                          <span>{progressPercent}% Completado</span>
+                      </div>
+                      <div className="progress-container">
+                          <div className="progress-bar" style={{width: `${progressPercent}%`}}></div>
+                      </div>
+                  </div>
+
                   <div className="hero-info-grid">
                     <div className="hero-info-item">📅 <strong>{cursoActivo.fInicio}</strong> (Inicio)</div>
                     <div className="hero-info-item">🏁 <strong>{cursoActivo.fFin}</strong> (Fin)</div>
@@ -403,7 +501,18 @@ const App = () => {
 
               <div className="timeline-container glass-panel">
                 <h3 style={{color:'var(--primary)', marginBottom:'30px'}}>Cronograma de Actividades</h3>
-                {cursoActivo && cursoActivo.semanas.map((s, idx) => (
+                {cursoActivo && cursoActivo.semanas.map((s, idx) => {
+                  let textFaltan = "";
+                  let statusClass = "";
+                  if (s.parsedDate && !isNaN(s.parsedDate.getTime())) {
+                      const diffTime = Math.floor((s.parsedDate.getTime() - fechaActual.getTime()) / (1000 * 60 * 60 * 24)) + 1; 
+                      if (diffTime > 1) { textFaltan = `Faltan ${diffTime} días`; statusClass = "future"; }
+                      else if (diffTime === 1) { textFaltan = "Mañana"; statusClass = "future"; }
+                      else if (diffTime === 0 || (fechaActual.toDateString() === s.parsedDate.toDateString())) { textFaltan = "Hoy"; statusClass = "today"; }
+                      else { textFaltan = "Finalizada"; statusClass = "past"; }
+                  }
+
+                  return (
                   <div key={idx} className="timeline-item">
                     <div className="timeline-line"></div>
                     <div className="date-circle">
@@ -411,7 +520,12 @@ const App = () => {
                       <span style={{fontSize:'1.3rem'}}>{s.num}</span>
                     </div>
                     <div className="timeline-content">
-                      <div style={{fontWeight:'bold', fontSize:'1.1rem'}}>{s.fecha}</div>
+                      <div style={{fontWeight:'bold', fontSize:'1.1rem', display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                          <span>{s.fecha}</span>
+                          {textFaltan && (
+                            <span className={`badge-faltan ${statusClass}`}>{textFaltan}</span>
+                          )}
+                      </div>
                       {s.tipo === 'INDEPENDIENTE' ? (
                           <div className="offline-badge">🏠 {s.displayTexto}</div>
                       ) : s.tipo === 'PRESENCIAL' ? (
@@ -426,7 +540,8 @@ const App = () => {
                       )}
                     </div>
                   </div>
-                ))}
+                  )
+                })}
               </div>
             </section>
           </>
