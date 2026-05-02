@@ -91,11 +91,22 @@ export const useAdminScheduleUploader = () => {
 
                 if (Object.keys(semanas).length > 0) {
                     const path = `horarios/${targetProgram}/${grupoId}/${asignatura.replace(/[.#$[\]]/g, "_")}`;
+                    
+                    // Crear el array semanasRaw para compatibilidad con el portal docente antiguo
+                    const semanasRaw = new Array(16).fill("");
+                    Object.keys(semanas).forEach(semKey => {
+                        const num = parseInt(semKey.replace('S', ''), 10);
+                        if (num >= 1 && num <= 16) {
+                            semanasRaw[num - 1] = semanas[semKey].raw || "";
+                        }
+                    });
+
                     updates[path] = {
                         asignatura,
                         grupo: grupoId,
-                        bloque: bloque || 'Bloque 1', // Default si no existe
+                        bloque: bloque || 'Bloque 1',
                         semanas,
+                        semanasRaw,
                         lastUpdate: new Date().toISOString()
                     };
                     count++;

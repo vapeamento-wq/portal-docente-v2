@@ -16,8 +16,28 @@ const getSaludo = () => {
 export const procesarCursos = (cursos = []) =>
   cursos.map(curso => {
     const semanas = [];
-    (curso.semanasRaw || []).forEach((texto, i) => {
+    
+    // Normalizamos la entrada de semanas (puede ser semanasRaw array o semanas object)
+    let rawSource = [];
+    if (Array.isArray(curso.semanasRaw)) {
+      rawSource = curso.semanasRaw;
+    } else if (curso.semanas && typeof curso.semanas === 'object') {
+      // Si es un objeto (S1, S2...), lo convertimos a un array ordenado de 16 posiciones
+      rawSource = new Array(16).fill(null);
+      Object.keys(curso.semanas).forEach(key => {
+        const match = key.match(/\d+/);
+        if (match) {
+          const idx = parseInt(match[0], 10) - 1;
+          if (idx >= 0 && idx < 16) {
+            rawSource[idx] = curso.semanas[key].raw || curso.semanas[key];
+          }
+        }
+      });
+    }
+
+    rawSource.forEach((item, i) => {
       if (i >= 16) return;
+      const texto = typeof item === 'string' ? item : (item?.raw || '');
       if (!texto || texto.length < 5 || texto.startsWith('-') || texto.toLowerCase().includes('pendiente')) return;
 
       const textoUpper = texto.toUpperCase();
