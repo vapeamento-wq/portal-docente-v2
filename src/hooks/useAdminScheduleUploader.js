@@ -67,23 +67,26 @@ export const useAdminScheduleUploader = () => {
                 const semanas = {};
                 // Buscamos columnas que empiecen por "SEMANA"
                 Object.keys(cleanRow).forEach(key => {
-                    if (key.startsWith('SEMANA')) {
-                        const semanaNumMatch = key.match(/\d+/);
-                        if (semanaNumMatch) {
-                            const semId = `S${semanaNumMatch[0]}`;
+                        // Detección flexible de columnas de semana (ej: "Semana 9", "SEMANA 09", "S9", "S 09", "SEM. 9", etc)
+                        const semanaMatch = key.match(/SEMANA\s*(\d+)/i) || 
+                                           key.match(/^S\s*(\d+)$/i) || 
+                                           key.match(/SEM\.?\s*(\d+)/i);
+                        
+                        if (semanaMatch) {
+                            const semanaNum = parseInt(semanaMatch[1], 10);
+                            const semId = `S${semanaNum}`;
                             const rawValue = cleanRow[key];
                             const parsedData = parseScheduleCell(rawValue);
                             
                             if (parsedData) {
-                                // Intentar extraer la fecha específica de la celda (ej: "14 / marzo")
-                                const dateMatch = rawValue.match(/\/\s*(\d+\s*\/\s*[a-z]+)/i);
+                                // Intentar extraer la fecha específica de la celda (ej: "14 / marzo", "11/abril", "14 de mayo")
+                                const dateMatch = rawValue.match(/(\d{1,2})\s*[\/\-de\s]+\s*([a-zA-Záéíóú]+)/i);
                                 if (dateMatch) {
-                                    parsedData.fecha = dateMatch[1].replace(/\//g, '').trim();
+                                    parsedData.fecha = `${dateMatch[1]} ${dateMatch[2]}`;
                                 }
                                 semanas[semId] = parsedData;
                             }
                         }
-                    }
                 });
 
                 if (Object.keys(semanas).length > 0) {
