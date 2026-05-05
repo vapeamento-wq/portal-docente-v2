@@ -1,31 +1,31 @@
 import React from 'react';
 
-const MaintenanceScreen = ({ onAdminAccess }) => (
-  <div className="min-h-screen bg-[#0f172a] flex items-center justify-center px-5">
-    <div className="text-center max-w-lg fade-in-up">
-      <div className="text-7xl mb-6">🔧</div>
-      <h1 className="text-3xl md:text-4xl font-black text-white mb-4 tracking-tight">
-        Portal en <span className="text-[#F15A24]">Mantenimiento</span>
-      </h1>
-      <p className="text-slate-400 text-base md:text-lg leading-relaxed mb-8">
-        Estamos realizando mejoras para brindarte una mejor experiencia.
-        Por favor vuelve en unos minutos.
-      </p>
-      <div className="inline-flex items-center gap-3 bg-slate-800/60 border border-slate-700 rounded-2xl px-6 py-4">
-        <div className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse" />
-        <span className="text-slate-300 text-sm font-medium">Trabajando en ello...</span>
-      </div>
-      {onAdminAccess && (
-        <div
-          className="mt-16 inline-flex items-center gap-2 cursor-pointer opacity-20 hover:opacity-100 transition-all duration-300 text-slate-500 text-xs px-4 py-2 rounded-full hover:bg-slate-800"
-          onClick={onAdminAccess}
-        >
-          <span className="w-1.5 h-1.5 bg-slate-500 rounded-full" />
-          🔒 Acceso Administrativo
+const MaintenanceScreen = ({ onAdminAccess }) => {
+    return (
+        <div className="min-h-screen bg-[#F0F2F5] dark:bg-slate-900 flex flex-col justify-center items-center text-center px-4 transition-colors duration-300">
+            <div className="bg-white dark:bg-slate-800 p-10 rounded-3xl shadow-xl max-w-lg border border-gray-100 dark:border-slate-700">
+                <div className="text-6xl mb-6 animate-bounce">🛠️</div>
+                <h1 className="text-3xl font-bold text-[#003366] dark:text-blue-400 mb-4">Portal en Mantenimiento</h1>
+                <p className="text-gray-600 dark:text-gray-300 text-lg mb-8 leading-relaxed">
+                    Estamos realizando actualizaciones urgentes en nuestra base de datos para mejorar tu experiencia.
+                    El servicio se restablecerá a la brevedad.
+                </p>
+                <div className="inline-flex items-center gap-2 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 px-4 py-2 rounded-lg font-bold text-sm">
+                    <span className="relative flex h-3 w-3">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-orange-500"></span>
+                    </span>
+                    Trabajando en el sistema
+                </div>
+            </div>
+            <div
+                className="mt-8 opacity-10 hover:opacity-100 cursor-pointer transition-opacity text-[#1A1A1A] dark:text-gray-400"
+                onClick={onAdminAccess}
+            >
+                🔒 Acceso Admin
+            </div>
         </div>
-      )}
-    </div>
-  </div>
-);
+    );
+};
 
 export default MaintenanceScreen;

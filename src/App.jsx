@@ -1,218 +1,422 @@
-import React, { useState, useEffect, Suspense, lazy } from 'react';
-import { Routes, Route, useNavigate, Navigate, useLocation } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
 import useSWR from 'swr';
 import Header from './components/Header';
+import Sidebar from './components/Sidebar';
+import HeroCard from './components/HeroCard';
+import Timeline from './components/Timeline';
 import Toast from './components/Toast';
 import LoginModal from './components/LoginModal';
+import ProgramSelectionModal from './components/ProgramSelectionModal';
+import AdminPanel from './components/AdminPanel';
 import MaintenanceScreen from './components/MaintenanceScreen';
 import NotFoundScreen from './components/NotFoundScreen';
 import WelcomeScreen from './components/WelcomeScreen';
-import DocenteCard, { procesarCursos } from './components/DocenteCard';
 import { motion, AnimatePresence } from 'framer-motion';
-import { registrarLog } from './utils/helpers';
-import {
-  auth,
-  db,
-  ref,
-  onAuthStateChanged,
-  onValue,
-  signOut,
-  trackAppEvent,
-  update,
-  increment,
-} from './services/firebase';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
+import { registrarLog, procesarCursos, formatoFechaHora } from './utils/helpers';
+import { ensureAuth, loginAdmin, logoutAdmin, onAuthChange, isAdmin, getUserRole } from './utils/firebaseAuth';
+import { trackAppEvent } from './utils/analytics';
 
-const AdminPanel = lazy(() => import('./components/AdminPanel'));
+const FIREBASE_DB_URL = `${import.meta.env.VITE_FIREBASE_DB_BASE_URL}/docentes/`;
+const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER;
 
-const FIREBASE_BASE_URL = import.meta.env.VITE_FIREBASE_DB_BASE_URL;
-// Docentes se buscan directamente por cédula (sin hash) — mismo patrón que la versión recuperada
-const FIREBASE_DOCENTES_URL = `${FIREBASE_BASE_URL}/docentes/`;
-
-const fetcher = (url) => fetch(url).then(res => res.json());
+// Fetcher function for SWR
+const fetcher = (...args) => fetch(...args).then(res => res.json());
 
 const App = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
+  const [view, setView] = useState('user');
 
-  const [currentUser, setCurrentUser] = useState(null);
-  const [authLoading, setAuthLoading] = useState(true);
+  // Estado de autenticación del administrador (manejado por Firebase Auth)
+  const [isAdminAuth, setIsAdminAuth] = useState(false);
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginError, setLoginError] = useState('');
+
+  // Estados Usuario
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchId, setSearchId] = useState(null);
-  const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
+  const [searchId, setSearchId] = useState(null); // ID real para SWR
+  const [docente, setDocente] = useState(null);
+
+  // Estados para Selección de Programa
+  const [programasDisponibles, setProgramasDisponibles] = useState([]);
+  const [selectedProgramaUI, setSelectedProgramaUI] = useState(null);
+  const [esperandoPrograma, setEsperandoPrograma] = useState(false);
+
+  const [selectedCursoIdx, setSelectedCursoIdx] = useState(0);
+  const [anuncio, setAnuncio] = useState(null);
+  const [searchAttempted, setSearchAttempted] = useState(false);
+
+  const [fechaActual, setFechaActual] = useState(new Date());
   const [toast, setToast] = useState({ show: false, msg: '' });
-  const [anuncioConfig, setAnuncioConfig] = useState({ activo: false, texto: '', url: '' });
+  const detailSectionRef = useRef(null);
 
-  // ── Auth listener ─────────────────────────────────────────────────────────
+  // Auth Anónima silenciosa: al cargar la app, todos los usuarios obtienen un token
+  // invisible para poder escribir logs y analytics en Firebase.
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
-      setAuthLoading(false);
-      if (user && location.pathname === '/login') navigate('/admin', { replace: true });
-    });
-    return () => unsubscribe();
-  }, [navigate, location.pathname]);
-
-  // ── Config global (mantenimiento + anuncio) ───────────────────────────────
-  useEffect(() => {
-    const configRef = ref(db, 'config/anuncio');
-    const unsubscribe = onValue(configRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        setIsMaintenanceMode(Boolean(data.mantenimiento));
-        let isActive = Boolean(data.texto?.trim());
-        if (isActive && data.inicio && new Date() < new Date(data.inicio)) isActive = false;
-        if (isActive && data.fin   && new Date() > new Date(data.fin))   isActive = false;
-        setAnuncioConfig({ activo: isActive, texto: data.texto || '', url: data.url || '' });
-      }
-    });
-    return () => unsubscribe();
+    ensureAuth().catch(err => console.warn('Anonymous auth failed:', err));
   }, []);
 
-  // ── Búsqueda de docentes ───────────────────────────────────────────────────
-  // Los docentes se buscan por cédula directa (no por hash) en Firebase nodo /docentes/<cedula>
-  const { data: rawDocente, error: docenteError, isLoading: docenteLoading } = useSWR(
-    searchId ? `${FIREBASE_DOCENTES_URL}${searchId}.json` : null,
+  // Observer de Firebase Auth — persiste la sesión entre recargas
+  useEffect(() => {
+    const unsubscribe = onAuthChange((user) => {
+      setIsAdminAuth(user ? isAdmin() : false);
+      // Si un admin inicia sesión y estaba en la pantalla de login, ir al panel
+      if (user && !user.isAnonymous && view === 'login') setView('admin');
+    });
+    return () => unsubscribe();
+  }, [view]);
+
+  // SWR Hook para data fetching
+  const { data: rawData, error, isLoading } = useSWR(
+    searchId ? `${FIREBASE_DB_URL}${searchId}.json` : null,
     fetcher,
-    { revalidateOnFocus: false, dedupingInterval: 60000 }
+    {
+      revalidateOnFocus: false, // No recargar al cambiar de tab
+      dedupingInterval: 60000, // Cache por 1 minuto
+      shouldRetryOnError: false
+    }
   );
 
-  const loggedRef = React.useRef(null);
-  useEffect(() => {
-    if (rawDocente && searchId && loggedRef.current !== searchId) {
-      loggedRef.current = searchId;
-      registrarLog(searchTerm, '✅ Consulta Exitosa Docente');
-      trackAppEvent('search_docente_success');
-    }
-  }, [rawDocente, searchId, searchTerm]);
-
-  // Procesa los cursos del docente con la lógica de semanas
-  const displayDocente = searchId && rawDocente
-    ? { ...rawDocente, cursos: procesarCursos(rawDocente.cursos || []) }
-    : null;
-
-  const isSearchAttempted = searchId && rawDocente === null;
-  const isNetworkError = searchId && docenteError && !rawDocente;
-
-  // ── Handlers ──────────────────────────────────────────────────────────────
-  const handleSearch = (e) => {
-    e.preventDefault();
-    const id = String(searchTerm).replace(/\D/g, '').substring(0, 15);
-    if (!id) return;
-    setSearchId(null);
-    loggedRef.current = null;
-    setTimeout(() => setSearchId(id), 0);
-    if (location.pathname !== '/') navigate('/');
-  };
-
-  const handleReset = () => {
-    setSearchTerm('');
-    setSearchId(null);
-    loggedRef.current = null;
-  };
-
-  const showToast = (msg) => {
-    setToast({ show: true, msg });
+  // ... (keeping useEffects and handlers intact below)
+  // Efecto para procesar datos cuando llegan de SWR
+  const showToast = (mensaje) => {
+    setToast({ show: true, msg: mensaje });
     setTimeout(() => setToast({ show: false, msg: '' }), 3000);
   };
 
-  if (authLoading) return (
-    <div className="min-h-screen bg-[#0f172a] flex items-center justify-center font-bold text-white text-lg tracking-widest">
-      <div className="flex flex-col items-center gap-4">
-        <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-        Iniciando...
-      </div>
-    </div>
-  );
+  useEffect(() => {
+    if (rawData) {
+      const cursosProcesados = procesarCursos(rawData.cursos);
 
+      // Lógica de Múltiples Programas
+      const programas = Array.from(new Set(cursosProcesados.map(c => c.programa || 'Sin Programa')));
+
+      if (programas.length > 1) {
+        // Hay varios programas, detener el flujo y preguntar
+        setProgramasDisponibles(programas);
+        setEsperandoPrograma(true);
+        // Guardamos todo el docente pero no seleccionamos programa todavía
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setDocente({ ...rawData, cursos: cursosProcesados });
+      } else {
+        // Solo 1 programa, avanza directo
+        const programaUnico = programas[0] || null;
+        setProgramasDisponibles(programas);
+        setSelectedProgramaUI(programaUnico);
+        setEsperandoPrograma(false);
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setDocente({ ...rawData, cursos: cursosProcesados });
+        setSelectedCursoIdx(0);
+      }
+
+      setSearchAttempted(false); // Reset on success
+      registrarLog(searchId, '✅ Consulta Exitosa (Cache/Red)');
+      trackAppEvent("search_success");
+    } else if (error) {
+      showToast('⚠️ Error de Red');
+      setSearchAttempted(true); // Show error view
+      registrarLog(searchId, '⚠️ Error Crítico de Red');
+      trackAppEvent("search_error", { error_type: "network" });
+    } else if (rawData === null && searchId) {
+      // SWR devolvió null (no encontrado en Firebase devuelve null body?)
+      // Firebase RTDB devuelve null si clave no existe
+      setDocente(null);
+      setSearchAttempted(true); // Show not found view
+      showToast('❌ No encontrado');
+      registrarLog(searchId, '❌ ID No Encontrado');
+      trackAppEvent("search_error", { error_type: "not_found" });
+    }
+  }, [rawData, error, searchId]);
+
+  useEffect(() => {
+    const timer = setInterval(() => setFechaActual(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Reset scroll to course section when course changes
+  useEffect(() => {
+    if (detailSectionRef.current) {
+        detailSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [selectedCursoIdx]);
+
+  const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
+
+  // Fetch Global Announcement & Maintenance Mode periodically
+  useEffect(() => {
+    const fetchAnuncio = async () => {
+      try {
+        const dbBaseUrl = import.meta.env.VITE_FIREBASE_DB_BASE_URL;
+        const res = await fetch(`${dbBaseUrl}/config/anuncio.json`);
+        const data = await res.json();
+
+        // Extraer bandera de mantenimiento dinámico
+        if (data && typeof data.mantenimiento !== 'undefined') {
+          setIsMaintenanceMode(Boolean(data.mantenimiento));
+        }
+
+        if (data && data.texto && data.texto.trim() !== '') {
+          const now = new Date();
+          let esValido = true;
+
+          if (data.inicio) {
+            const fechaInicio = new Date(data.inicio);
+            if (now < fechaInicio) esValido = false;
+          }
+
+          if (data.fin) {
+            const fechaFin = new Date(data.fin);
+            if (now > fechaFin) esValido = false;
+          }
+
+          if (esValido) {
+            setAnuncio(data.texto);
+          } else {
+            setAnuncio(null);
+          }
+        } else {
+          setAnuncio(null);
+        }
+      } catch (err) {
+        console.error("Error fetching admin config:", err);
+      }
+    };
+
+    fetchAnuncio();
+
+    // Polling cada 30 segundos para detectar si se activó el mantenimiento
+    const pollTimer = setInterval(fetchAnuncio, 30000);
+    return () => clearInterval(pollTimer);
+
+  }, [view]); // Refetch when view changes
+
+  // --- 💾 PERSISTENCIA (RECORDARME) ---
+  useEffect(() => {
+    const storedId = localStorage.getItem('portal_docente_id');
+    if (storedId) {
+      setSearchTerm(storedId);
+      setSearchId(storedId);
+    }
+  }, []);
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    // Sanitización rigurosa: solo números y máximo 15 caracteres
+    const rawInput = String(searchTerm).trim();
+    const idBusqueda = rawInput.replace(/\D/g, '').substring(0, 15);
+
+    if (!idBusqueda) {
+      showToast('❌ Documento inválido');
+      return;
+    }
+
+    if (rawInput !== idBusqueda) {
+      setSearchTerm(idBusqueda); // Limpia visualmente el input de letras
+    }
+
+    localStorage.setItem('portal_docente_id', idBusqueda); // Guardar ID
+    setDocente(null);
+    setSearchAttempted(false); // Reset while loading
+    setSearchId(idBusqueda); // Trigger SWR
+  };
+
+  const handleAdminSelectDocente = (idDocente) => {
+    localStorage.setItem('portal_docente_id', idDocente);
+    setSearchTerm(idDocente);
+    setDocente(null);
+    setSearchAttempted(false);
+    setSearchId(idDocente);
+    setView('user');
+  };
+
+  // --- AUTENTICACIÓN ADMINISTRADOR (Firebase Auth) ---
+  const handleLogin = async (email, password) => {
+    setLoginLoading(true);
+    setLoginError('');
+    try {
+      await loginAdmin(email, password);
+      setView('admin');
+    } catch (err) {
+      console.error('Login error:', err.code, err.message);
+      const msg = err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password'
+        ? 'Correo o contraseña incorrectos.'
+        : err.code === 'auth/too-many-requests'
+          ? 'Demasiados intentos. Intenta más tarde.'
+          : err.code === 'auth/unauthorized-domain'
+            ? 'Dominio no autorizado. Agrega este dominio en Firebase Console → Auth → Configuración → Dominios autorizados.'
+            : `Error: ${err.code || err.message}`;
+      setLoginError(msg);
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  const handleReset = () => {
+    localStorage.removeItem('portal_docente_id'); // Borrar ID
+    setDocente(null);
+    setSearchTerm('');
+    setSearchId(null);
+    setSelectedCursoIdx(0);
+    setSearchAttempted(false);
+    setSelectedProgramaUI(null);
+    setEsperandoPrograma(false);
+    setProgramasDisponibles([]);
+
+    // Si el usuario es un administrador autenticado, devolverlo a su panel
+    if (isAdminAuth) {
+      setView('admin');
+    }
+  };
+
+  const handleProgramSelect = (prog) => {
+    setSelectedProgramaUI(prog);
+    setEsperandoPrograma(false);
+    setSelectedCursoIdx(0);
+  };
+
+  const handleProgramCancel = () => {
+    handleReset();
+  };
+
+  // Filtrar y ordenar los cursos basados en el programa seleccionado
+  const cursosFiltrados = docente 
+    ? (selectedProgramaUI ? docente.cursos.filter(c => (c.programa || 'Sin Programa') === selectedProgramaUI) : docente.cursos)
+      .sort((a, b) => {
+        const getBloqueNum = (bStr) => {
+          if (!bStr) return 99;
+          const m = bStr.match(/\d+/);
+          return m ? parseInt(m[0], 10) : 99;
+        };
+        return getBloqueNum(a.bloque) - getBloqueNum(b.bloque);
+      })
+    : [];
+
+  // Utilizar los cursos filtrados para HeroCard y Timeline
+  const cursoActivo = cursosFiltrados.length > 0 ? cursosFiltrados[selectedCursoIdx] : null;
+
+  // --- VISTA ADMIN (CON DASHBOARD) ---
+  if (view === 'admin') {
+    return (
+      <AdminPanel
+        onBack={async () => { await logoutAdmin(); setView('user'); }}
+        onSelectDocente={handleAdminSelectDocente}
+        userRole={getUserRole()}
+      />
+    );
+  }
+
+  // --- MANTENIMIENTO DINÁMICO ---
+  const isMaintenance = isMaintenanceMode; // Lee el estado de Firebase
+
+  // Si está en mantenimiento, no es login, y no es un Admin autenticado, bloquea.
+  if (isMaintenance && view !== 'login' && !isAdminAuth) {
+    return <MaintenanceScreen onAdminAccess={() => setView('login')} />;
+  }
+
+  // --- VISTA USUARIO ---
   return (
-    <div className="min-h-screen bg-[#0f172a] text-gray-100 transition-colors duration-300">
+    <div className="min-h-screen bg-[#F0F2F5] dark:bg-slate-900 text-[#1A1A1A] dark:text-gray-100 font-sans selection:bg-[#003366] dark:selection:bg-blue-500 selection:text-white pb-10 transition-colors duration-300">
       <Toast msg={toast.msg} show={toast.show} />
 
-      <Routes>
-        {/* ── Ruta principal ─────────────────────────────────────────────── */}
-        <Route path="/" element={
-          isMaintenanceMode && !currentUser ? (
-            <MaintenanceScreen onAdminAccess={() => navigate('/login')} />
-          ) : (
-            <>
-              {/* Banner de anuncio */}
-              {anuncioConfig.activo && anuncioConfig.texto && (
-                <div className="bg-[#003366] text-white text-center py-2 px-4 text-xs font-bold tracking-wide">
-                  {anuncioConfig.url
-                    ? <a href={anuncioConfig.url} target="_blank" rel="noreferrer" className="underline">{anuncioConfig.texto}</a>
-                    : anuncioConfig.texto
-                  }
-                </div>
-              )}
+      {/* LOGIN ADMIN */}
+      {view === 'login' && (
+        <LoginModal
+          onSubmit={handleLogin}
+          onCancel={() => setView('user')}
+          loading={loginLoading}
+          error={loginError}
+        />
+      )}
 
-              <Header
-                onReset={handleReset}
-                docente={displayDocente}
-                searchTerm={searchTerm}
-                setSearchTerm={setSearchTerm}
-                onSearch={handleSearch}
-                loading={docenteLoading}
-              />
+      <Header
+        onReset={handleReset}
+        docente={docente}
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        onSearch={handleSearch}
+        loading={isLoading}
+      />
 
-              <main className="max-w-7xl mx-auto px-5 pt-10 pb-32">
-                <AnimatePresence>
-                  {!displayDocente ? (
-                    (docenteLoading || isNetworkError) ? (
-                      <motion.div key="loading" className="flex flex-col items-center justify-center py-24">
-                        <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4" />
-                        <p className="text-blue-300 font-bold uppercase tracking-widest text-sm">
-                          {isNetworkError ? 'Reintentando conexión...' : 'Consultando registro...'}
-                        </p>
-                      </motion.div>
-                    ) : isSearchAttempted ? (
-                      <NotFoundScreen key="notfound" searchId={searchTerm} onReset={handleReset} />
-                    ) : (
-                      <WelcomeScreen key="welcome" onAdminAccess={() => navigate('/login')} />
-                    )
-                  ) : (
-                    <motion.div key="dashboard" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-8">
-                      <DocenteCard docente={displayDocente} onReset={handleReset} />
-                      <div className="w-full flex justify-center mt-4 border-t border-slate-800 pt-8">
-                        <button
-                          onClick={handleReset}
-                          className="text-xs font-black text-gray-400 hover:text-[#db9b32] transition-colors cursor-pointer uppercase tracking-[0.3em] border-none bg-transparent"
-                        >
-                          Realizar otra consulta →
-                        </button>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </main>
-            </>
-          )
-        } />
+      {/* MODAL DE SELECCIÓN DE PROGRAMA */}
+      {esperandoPrograma && programasDisponibles.length > 1 && (
+        <ProgramSelectionModal
+          programas={programasDisponibles}
+          onSelect={handleProgramSelect}
+          onCancel={handleProgramCancel}
+        />
+      )}
 
-        {/* ── Ruta de login ─────────────────────────────────────────────── */}
-        <Route path="/login" element={
-          <div className="min-h-screen bg-[#003366] flex items-center justify-center p-5">
-            <LoginModal onSuccess={() => navigate('/admin')} onCancel={() => navigate('/')} />
+      {anuncio && view !== 'admin' && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-7xl mx-auto mt-6 px-5"
+        >
+          <div className="bg-blue-50 border-l-4 border-blue-500 text-blue-700 p-4 rounded-r-lg shadow-sm flex items-start gap-3">
+            <span className="text-xl">📢</span>
+            <div className="flex-1 whitespace-pre-wrap">{anuncio}</div>
+            <button onClick={() => setAnuncio(null)} className="text-blue-400 hover:text-blue-600 font-bold px-2 py-1 cursor-pointer">✕</button>
           </div>
-        } />
+        </motion.div>
+      )}
 
-        {/* ── Ruta de admin ─────────────────────────────────────────────── */}
-        <Route path="/admin" element={
-          currentUser ? (
-            <Suspense fallback={<div className="min-h-screen bg-[#0f172a] flex items-center justify-center text-white font-bold">Cargando panel...</div>}>
-              <AdminPanel
-                currentUser={currentUser}
-                onBack={() => navigate('/')}
-                onSelectDocente={(hash, id) => { setSearchId(id); navigate('/'); }}
-                onLogout={() => signOut(auth).then(() => navigate('/'))}
+      <main className="max-w-7xl mx-auto mt-10 px-5 grid grid-cols-1 md:grid-cols-[320px_1fr] gap-10 pb-24">
+        <AnimatePresence mode="wait">
+          {!docente ? (
+            searchAttempted ? (
+              <NotFoundScreen
+                searchId={searchId}
+                onReset={handleReset}
+                whatsappNumber={WHATSAPP_NUMBER}
               />
-            </Suspense>
+            ) : (
+              <WelcomeScreen
+                fechaEspanol={formatoFechaHora(fechaActual).fecha}
+                onAdminAccess={() => setView('login')}
+              />
+            )
           ) : (
-            <Navigate to="/login" replace />
-          )
-        } />
+            <motion.div
+              key="dashboard"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-[320px_1fr] gap-10"
+            >
+              <Sidebar
+                docente={{ ...docente, cursos: cursosFiltrados }}
+                selectedCursoIdx={selectedCursoIdx}
+                setSelectedCursoIdx={setSelectedCursoIdx}
+              />
 
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+              <section ref={detailSectionRef} className="flex flex-col gap-8 relative">
+                <div className="sticky top-0 z-40 pt-6 pb-2 bg-[#F0F2F5] dark:bg-slate-900 transition-colors duration-300">
+                  <HeroCard cursoActivo={cursoActivo} />
+                  {/* Desvanecido inferior */}
+                  <div className="absolute -bottom-6 left-0 right-0 h-6 bg-gradient-to-b from-[#F0F2F5] dark:from-slate-900 to-transparent pointer-events-none" />
+                </div>
+                <Timeline cursoActivo={cursoActivo} docenteId={docente.idReal} />
+              </section>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </main>
+
+      {/* Floating Action Buttons */}
+      <div className="fixed bottom-8 right-8 flex flex-col gap-4 z-50">
+        <a
+          href={`https://wa.me/${WHATSAPP_NUMBER}`}
+          target="_blank"
+          rel="noreferrer"
+          onClick={() => trackAppEvent("click_whatsapp_support", { location: "floating_button" })}
+          className="bg-[#25D366] text-white w-14 h-14 rounded-full font-bold shadow-[0_10px_30px_rgba(37,211,102,0.4)] hover:scale-110 transition-transform flex items-center justify-center text-2xl no-underline"
+          title="Soporte por WhatsApp"
+        >
+          💬
+        </a>
+      </div>
+      <Analytics />
+      <SpeedInsights />
     </div>
   );
 };
