@@ -142,7 +142,7 @@ export const procesarCursos = (cursos) => {
       const cleanText = String(texto).trim();
       const cleanLower = cleanText.toLowerCase();
       // Skip placeholders and block notices that don't have actual scheduling
-      if (!cleanText || cleanText === "-" || cleanText === "." || cleanLower === "pendiente" || cleanLower.includes("programado para el bloque")) return;
+      if (!cleanText || cleanText === "-" || cleanText === "." || cleanLower === "pendiente" || (cleanLower.includes("programado para el bloque") && !cleanLower.includes("zoom") && !cleanLower.includes("id"))) return;
       // Skip short generic texts without numbers (unless it's a known keyword)
       if (cleanText.length < 5 && !cleanText.match(/\d/)) return;
 
