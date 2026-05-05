@@ -17,13 +17,9 @@ export const procesarCursos = (cursos = []) =>
   cursos.map(curso => {
     const semanas = [];
     
-    // Normalizamos la entrada de semanas (puede ser semanasRaw array o semanas object)
-    let rawSource = [];
-    if (Array.isArray(curso.semanasRaw)) {
-      rawSource = curso.semanasRaw;
-    } else if (curso.semanas && typeof curso.semanas === 'object') {
-      // Si es un objeto (S1, S2...), lo convertimos a un array ordenado de 16 posiciones
-      rawSource = new Array(16).fill(null);
+    // Normalizamos la entrada de semanas basándonos siempre en el objeto semanas si existe, para evitar bugs de arrays sparse
+    let rawSource = new Array(16).fill(null);
+    if (curso.semanas && typeof curso.semanas === 'object') {
       Object.keys(curso.semanas).forEach(key => {
         const match = key.match(/\d+/);
         if (match) {
@@ -33,12 +29,15 @@ export const procesarCursos = (cursos = []) =>
           }
         }
       });
+    } else if (Array.isArray(curso.semanasRaw)) {
+      rawSource = curso.semanasRaw;
     }
 
     rawSource.forEach((item, i) => {
       if (i >= 16) return;
       const texto = typeof item === 'string' ? item : (item?.raw || '');
-      if (!texto || texto.length < 2 || texto.toLowerCase().includes('pendiente')) return;
+      // Permitir cualquier texto que tenga al menos 1 caracter, sin filtrar guiones ni nada.
+      if (!texto || texto.trim().length === 0 || texto.toLowerCase().includes('pendiente')) return;
 
       const textoUpper = texto.toUpperCase();
       let tipo = 'ZOOM';
