@@ -38,7 +38,7 @@ export const procesarCursos = (cursos = []) =>
     rawSource.forEach((item, i) => {
       if (i >= 16) return;
       const texto = typeof item === 'string' ? item : (item?.raw || '');
-      if (!texto || texto.length < 5 || texto.toLowerCase().includes('pendiente')) return;
+      if (!texto || texto.length < 2 || texto.toLowerCase().includes('pendiente')) return;
 
       const textoUpper = texto.toUpperCase();
       let tipo = 'ZOOM';

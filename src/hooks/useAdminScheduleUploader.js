@@ -67,10 +67,11 @@ export const useAdminScheduleUploader = () => {
                 const semanas = {};
                 // Buscamos columnas que empiecen por "SEMANA"
                 Object.keys(cleanRow).forEach(key => {
-                        // Detección flexible de columnas de semana (ej: "Semana 9", "SEMANA 09", "S9", "S 09", "SEM. 9", etc)
+                        // Detección flexible de columnas de semana (ej: "Semana 9", "SEMANA 09", "S9", "S 09", "SEM. 9", "9", etc)
                         const semanaMatch = key.match(/SEMANA\s*(\d+)/i) || 
                                            key.match(/^S\s*(\d+)$/i) || 
-                                           key.match(/SEM\.?\s*(\d+)/i);
+                                           key.match(/SEM\.?\s*(\d+)/i) ||
+                                           (key.match(/^(\d+)$/) && parseInt(key, 10) <= 16 ? key.match(/^(\d+)$/) : null);
                         
                         if (semanaMatch) {
                             const semanaNum = parseInt(semanaMatch[1], 10);
