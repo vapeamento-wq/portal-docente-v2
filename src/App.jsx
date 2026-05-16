@@ -11,6 +11,7 @@ import AdminPanel from './components/AdminPanel';
 import MaintenanceScreen from './components/MaintenanceScreen';
 import NotFoundScreen from './components/NotFoundScreen';
 import WelcomeScreen from './components/WelcomeScreen';
+import MigrationBanner from './components/MigrationBanner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
@@ -311,6 +312,11 @@ const App = () => {
   // Si está en mantenimiento, no es login, y no es un Admin autenticado, bloquea.
   if (isMaintenance && view !== 'login' && !isAdminAuth) {
     return <MaintenanceScreen onAdminAccess={() => setView('login')} />;
+  }
+
+  // --- MIGRATION BANNER ---
+  if (!isAdminAuth && view === 'user') {
+    return <MigrationBanner onAdminAccess={() => setView('login')} />;
   }
 
   // --- VISTA USUARIO ---
