@@ -315,9 +315,9 @@ const App = () => {
   }
 
   // --- MIGRATION BANNER ---
-  if (!isAdminAuth && view === 'user') {
-    return <MigrationBanner onAdminAccess={() => setView('login')} />;
-  }
+  // if (!isAdminAuth && view === 'user') {
+  //   return <MigrationBanner onAdminAccess={() => setView('login')} />;
+  // }
 
   // --- VISTA USUARIO ---
   return (
